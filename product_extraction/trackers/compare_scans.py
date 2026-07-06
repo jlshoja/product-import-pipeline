@@ -28,6 +28,7 @@ from common.excel_utils import (
 )
 from common.file_utils import find_latest_dated
 from common.price_utils import select_effective_price as _select_effective_price
+from common.color_utils import split_color_values as _split_color_values
 from common.text_utils import (
     extract_numeric_code as _extract_numeric_code,
     normalize_text as _normalize_text,
@@ -43,7 +44,11 @@ def parse_colors(val):
     """پارس رنگ‌ها با حذف کاراکترهای نامرئی Unicode برای مقایسه دقیق"""
     if pd.isna(val) or str(val).strip() == "":
         return set()
-    return {normalize_text(c) for c in str(val).split("|") if normalize_text(c)}
+    return {
+        normalize_text(c)
+        for c in _split_color_values(str(val))
+        if normalize_text(c)
+    }
 
 def extract_code(text):
     """استخراج کد عددی محصول (۳ تا ۶ رقم) از یک متن (مثل sku یا نام محصول)."""
