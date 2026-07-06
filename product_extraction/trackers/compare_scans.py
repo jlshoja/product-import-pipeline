@@ -21,6 +21,7 @@ from common.excel_utils import (
     NORMAL_FONT,
     RED_FONT,
     GREEN_FONT,
+    read_excel,
     style_header,
     auto_width,
     set_fill,
@@ -119,7 +120,7 @@ def load_product_links(links_path):
     و یک دیکشنری {کد محصول: {"name":..., "url":..., "price":...}} برمی‌گردونه.
     کد محصول از داخل Product Name استخراج می‌شه (مثلاً «کوله پشتی کد 9266» -> 9266).
     """
-    df = pd.read_excel(links_path, dtype=str)
+    df = read_excel(links_path, dtype=str)
     df.columns = [c.strip() for c in df.columns]
 
     links = {}
@@ -400,7 +401,7 @@ def write_sheet_links(wb, new_products, new_colors_full, links_map):
 
 
 def compare(scan_path, woo_path, output_path, links_path=None):
-    df_scan = pd.read_excel(scan_path, dtype={"sku": str})
+    df_scan = read_excel(scan_path, dtype={"sku": str})
     df_scan["sku"] = df_scan["sku"].str.strip()
 
     woo_products, woo_variations = load_woo(woo_path)

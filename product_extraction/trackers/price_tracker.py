@@ -37,6 +37,7 @@ from common.excel_utils import (
     YELLOW_FILL,
     THIN_BORDER,
     CENTER_CENTER,
+    read_excel,
     excel_writer,
 )
 from common.date_utils import get_persian_date as _get_persian_date
@@ -87,7 +88,7 @@ def load_previous_data(file_path):
     Load previous data
     """
     try:
-        df = pd.read_excel(file_path, sheet_name='محصولات فعلی')
+        df = read_excel(file_path, sheet_name='محصولات فعلی')
         print(f"✓ Previous file loaded: {file_path.name}")
         sys.stdout.flush()
         print(f"  Previous products count: {len(df)}")
@@ -108,7 +109,7 @@ def process_current_data(input_file):
     sys.stdout.flush()
     print(f"{'='*80}")
     
-    df = pd.read_excel(input_file)
+    df = read_excel(input_file)
     print(f"✓ New products count: {len(df)}")
     sys.stdout.flush()
     
