@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # ─── Shared Excel utilities (Unit 3) ───────────────────────────────
 from common.excel_utils import read_excel, excel_writer, write_dataframe
+from common.file_utils import safe_delete
 
 # ✅ Import ColorManager for final standardization
 try:
@@ -1138,8 +1139,7 @@ def load_progress():
 def clear_progress():
     """Clear progress file after completion"""
     try:
-        if os.path.exists('scraper_progress.json'):
-            os.remove('scraper_progress.json')
+        if safe_delete('scraper_progress.json', missing_ok=False):
             print("\n🗑️  Progress file cleared")
     except:
         pass
@@ -1682,5 +1682,4 @@ else:
     print("✓ All packages installed\n")
     sys.stdout.flush()
     main()
-
 
