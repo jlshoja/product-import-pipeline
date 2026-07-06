@@ -102,3 +102,17 @@ def find_latest_dated(base_dir, pattern, date_formats, recursive=False):
 
     dated.sort(key=lambda item: item[0])
     return dated[-1][1]
+
+
+def find_first_glob_match(base_dir, pattern, recursive=False):
+    """Return the first file matching a glob pattern, or None if not found."""
+    base_path = Path(base_dir)
+    if not base_path.exists():
+        return None
+
+    files = base_path.rglob(pattern) if recursive else base_path.glob(pattern)
+    for file_path in files:
+        if file_path.is_file():
+            return file_path
+
+    return None

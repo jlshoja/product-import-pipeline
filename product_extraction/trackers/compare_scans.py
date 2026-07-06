@@ -1,4 +1,3 @@
-import glob
 import os
 import re
 import sys
@@ -26,7 +25,7 @@ from common.excel_utils import (
     auto_width,
     set_fill,
 )
-from common.file_utils import find_latest_dated
+from common.file_utils import find_first_glob_match, find_latest_dated
 from common.price_utils import select_effective_price as _select_effective_price
 from common.color_utils import split_color_values as _split_color_values
 from common.text_utils import (
@@ -74,11 +73,8 @@ def find_latest_scan(folder):
 
 def find_links_file(folder):
     """پیدا کردن فایل extracted_products*.xlsx (لینک محصولات) در یک پوشه."""
-    if not folder or not os.path.isdir(folder):
-        return None
-    pattern = os.path.join(folder, "extracted_products*.xlsx")
-    files = glob.glob(pattern)
-    return files[0] if files else None
+    match = find_first_glob_match(folder, "extracted_products*.xlsx")
+    return str(match) if match else None
 
 
 def find_latest_woo_file(folder):
