@@ -41,6 +41,7 @@ from common.excel_utils import (
     CENTER_CENTER,
     excel_writer,
 )
+from common.file_utils import ensure_directory
 
 # Import Price History Manager
 try:
@@ -199,9 +200,7 @@ def create_reports_folder():
     """
     ایجاد فولدر reports اگر وجود ندارد
     """
-    reports_dir = Path('reports')
-    reports_dir.mkdir(exist_ok=True)
-    return reports_dir
+    return ensure_directory('reports')
 
 
 def find_latest_tracking_file():
