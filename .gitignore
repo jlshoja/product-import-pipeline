@@ -1,0 +1,186 @@
+# ==========================================
+
+# Python
+
+# ==========================================
+
+**pycache**/
+*.py[cod]
+*.pyo
+*$py.class
+
+# ==========================================
+
+# Virtual Environments
+
+# ==========================================
+
+venv/
+.venv/
+env/
+ENV/
+
+**/venv/
+**/.venv/
+**/env/
+**/ENV/
+
+imagetools_env/
+**/imagetools_env/
+
+# ==========================================
+
+# IDE / Editors
+
+# ==========================================
+
+.vscode/
+.idea/
+.zed/
+
+# ==========================================
+
+# Environment Variables
+
+# ==========================================
+
+.env
+.env.*
+!.env.example
+
+# ==========================================
+
+# Logs
+
+# ==========================================
+
+*.log
+logs/
+
+# ==========================================
+
+# Temporary / Cache
+
+# ==========================================
+
+tmp/
+temp/
+cache/
+.cache/
+
+# ==========================================
+
+# Build / Distribution
+
+# ==========================================
+
+build/
+dist/
+*.egg-info/
+
+# ==========================================
+
+# Test Coverage
+
+# ==========================================
+
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ==========================================
+
+# Operating System
+
+# ==========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.Spotlight-V100/
+.Trashes/
+
+# ==========================================
+
+# Image Processing Outputs
+
+# ==========================================
+
+image_processing/downloaded_images/
+image_processing/uploads/
+image_processing/output/
+image_processing/imagetools_env/
+
+# Ignore these folders anywhere
+
+**/downloaded_images/
+**/uploads/
+**/output/
+
+# Generated Excel files
+
+image_processing/extracted_products.xlsx
+**/extracted_products.xlsx
+
+# Generated JSON
+
+progress.json
+link_scraper_progress.json
+
+# HTML dumps
+
+page_source.html
+
+# ==========================================
+
+# Product Extraction Outputs
+
+# ==========================================
+
+product_extraction/debug_screenshots/
+**/debug_screenshots/
+
+# Reports archive/output folders
+
+product_extraction/reports/archive/
+product_extraction/reports/outputs/
+
+# Generated report files
+
+product_extraction/reports/*.xlsx
+product_extraction/reports/*.html
+product_extraction/reports/*_skus_to_delete.txt
+product_extraction/reports/*.html
+
+# Additional generated files
+
+product_extraction/reports/snapshot_*.xlsx
+product_extraction/reports/product_changes_*.xlsx
+product_extraction/reports/product_details_*.xlsx
+
+# ==========================================
+
+# Generated Excel Files
+
+# ==========================================
+
+archive_urls.xlsx
+checkpoint.xlsx
+product_details_complete.xlsx
+
+# ==========================================
+
+# Misc
+
+# ==========================================
+
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# ============================================
+!baseline/sample_input/archive_urls.xlsx
+!baseline/sample_output/extracted_products.xlsx
+!baseline/sample_output/product_details_complete.xlsx

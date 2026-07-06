@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Product Scraper - Interactive Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1em;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-ready { background: #4ade80; }
+        .status-running { background: #fbbf24; animation: pulse 1.5s infinite; }
+        .status-waiting { background: #f59e0b; animation: pulse 1s infinite; }
+        .status-error { background: #ef4444; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 15px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 30px;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff 0%, #667eea 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        /* Interactive Input Area */
+        .input-area {
+            display: none;
+            background: rgba(245, 158, 11, 0.1);
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .input-area.active {
+            display: block;
+            animation: highlight 1s ease-in-out infinite;
+        }
+
+        @keyframes highlight {
+            0%, 100% { border-color: #f59e0b; }
+            50% { border-color: #fbbf24; }
+        }
+
+        .input-prompt {
+            font-weight: bold;
+            color: #fbbf24;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1em;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .btn-send {
+            padding: 10px 25px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #00d4ff 0%, #667eea 100%);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quick-responses {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-quick {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .btn-quick:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Task Buttons */
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .task-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .task-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .task-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Console */
+        .console {
+            background: #0a0e27;
+            border-radius: 10px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .console-line {
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .console-question {
+            background: rgba(245, 158, 11, 0.2);
+            padding: 8px;
+            border-left: 3px solid #f59e0b;
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        /* File List */
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+
+        .file-meta {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-download {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-view {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-view:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Product Scraper Control Panel</h1>
+            <p>Interactive Mode - شما خودتان جواب سوالات را می‌دهید</p>
+        </div>
+
+        <div class="grid">
+            <!-- Status Card -->
+            <div class="card">
+                <div class="card-title">⚡ Status</div>
+                <div>
+                    <span class="status-indicator status-ready" id="statusIndicator"></span>
+                    <span id="statusText">Ready</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.9em; color: #888;">
+                    <div>Task: <span id="currentTask">None</span></div>
+                    <div>Started: <span id="startTime">-</span></div>
+                </div>
+                
+                <!-- Interactive Input -->
+                <div class="input-area" id="inputArea">
+                    <div class="input-prompt" id="inputPrompt">❓ سوال:</div>
+                    <div class="input-row">
+                        <input type="text" class="input-field" id="userInput" placeholder="جواب خود را بنویسید...">
+                        <button class="btn-send" id="btnSend" onclick="sendInput()">📤 Send</button>
+                    </div>
+                    <div class="quick-responses">
+                        <button class="btn-quick" onclick="quickResponse('y')">✅ Yes (y)</button>
+                        <button class="btn-quick" onclick="quickResponse('n')">❌ No (n)</button>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progressContainer" style="display: none; margin-top: 15px;">
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar">0%</div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #888;">
+                        <div id="progressDetails"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-title">🚀 Quick Actions</div>
+                <div class="task-grid">
+                    <button class="task-button" onclick="runTask('scrape-links')">
+                        📎 Scrape Links
+                    </button>
+                    <button class="task-button" onclick="runTask('scrape-specs')">
+                        📋 Scrape Specs
+                    </button>
+                    <button class="task-button" onclick="runTask('track')">
+                        💰 Track Prices
+                    </button>
+                    <button class="task-button" onclick="runTask('dashboard')">
+                        📊 Dashboard
+                    </button>
+                    <button class="task-button" onclick="runTask('full')">
+                        ⚡ Full Pipeline
+                    </button>
+                    <button class="task-button" onclick="runTask('test')">
+                        🧪 Run Tests
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Files -->
+        <div class="card">
+            <div class="card-title">📁 Output Files</div>
+            <div class="file-list" id="fileList">
+                <div style="text-align: center; color: #888; padding: 20px;">
+                    Loading files...
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Console -->
+        <div class="card">
+            <div class="card-title">📜 Live Console</div>
+            <div class="console" id="console">
+                <div style="color: #888;">Waiting for task...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let updateInterval;
+        let waitingForInput = false;
+
+        function runTask(task) {
+            fetch(`/api/run/${task}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        startUpdate();
+                    } else {
+                        alert(data.error || 'Failed to start task');
+                    }
+                });
+        }
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    // Update status
+                    const indicator = document.getElementById('statusIndicator');
+                    const statusText = document.getElementById('statusText');
+                    
+                    if (data.waiting_for_input) {
+                        indicator.className = 'status-indicator status-waiting';
+                        statusText.textContent = 'Waiting for Input';
+                        showInputArea(data.last_question || 'برنامه منتظر ورودی شماست');
+                        waitingForInput = true;
+                    } else if (data.running) {
+                        indicator.className = 'status-indicator status-running';
+                        statusText.textContent = 'Running';
+                        hideInputArea();
+                        waitingForInput = false;
+                    } else {
+                        indicator.className = 'status-indicator status-ready';
+                        statusText.textContent = 'Ready';
+                        hideInputArea();
+                        waitingForInput = false;
+                    }
+
+                    // Update current task
+                    document.getElementById('currentTask').textContent = data.task_display || 'None';
+                    document.getElementById('startTime').textContent = 
+                        data.start_time ? new Date(data.start_time).toLocaleTimeString() : '-';
+
+                    // Update progress
+                    const progressContainer = document.getElementById('progressContainer');
+                    if (data.running && data.progress && data.progress.percentage > 0) {
+                        progressContainer.style.display = 'block';
+                        const progressBar = document.getElementById('progressBar');
+                        progressBar.style.width = data.progress.percentage + '%';
+                        progressBar.textContent = data.progress.percentage + '%';
+
+                        let details = '';
+                        if (data.progress.current && data.progress.total) {
+                            details += `Progress: ${data.progress.current}/${data.progress.total}`;
+                        }
+                        if (data.progress.current_item) {
+                            details += `<br>Current: ${escapeHtml(data.progress.current_item)}`;
+                        }
+                        document.getElementById('progressDetails').innerHTML = details;
+                    } else {
+                        progressContainer.style.display = 'none';
+                    }
+
+                    // Update console
+                    const console = document.getElementById('console');
+                    if (data.log && data.log.length > 0) {
+                        console.innerHTML = data.log.map(line => {
+                            // Highlight questions
+                            if (line.includes('?') || line.includes('❓')) {
+                                return `<div class="console-line console-question">${escapeHtml(line)}</div>`;
+                            }
+                            return `<div class="console-line">${escapeHtml(line)}</div>`;
+                        }).join('');
+                        console.scrollTop = console.scrollHeight;
+                    }
+
+                    // Stop updating if not running
+                    if (!data.running && !data.waiting_for_input && updateInterval) {
+                        clearInterval(updateInterval);
+                        updateInterval = null;
+                        updateFiles();
+                    }
+                });
+        }
+
+        function showInputArea(question) {
+            const inputArea = document.getElementById('inputArea');
+            const inputPrompt = document.getElementById('inputPrompt');
+            const userInput = document.getElementById('userInput');
+            
+            inputPrompt.textContent = '❓ ' + question;
+            inputArea.classList.add('active');
+            userInput.value = '';
+            userInput.focus();
+        }
+
+        function hideInputArea() {
+            const inputArea = document.getElementById('inputArea');
+            inputArea.classList.remove('active');
+        }
+
+        function sendInput() {
+            const input = document.getElementById('userInput').value;
+            if (!input) return;
+
+            fetch('/api/input', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({input: input})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    hideInputArea();
+                    document.getElementById('userInput').value = '';
+                }
+            });
+        }
+
+        function quickResponse(response) {
+            document.getElementById('userInput').value = response;
+            sendInput();
+        }
+
+        function updateFiles() {
+            fetch('/api/files')
+                .then(r => r.json())
+                .then(files => {
+                    const list = document.getElementById('fileList');
+                    if (files.length === 0) {
+                        list.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No files yet</div>';
+                        return;
+                    }
+                    list.innerHTML = files.map(file => {
+                        const isViewable = file.name.endsWith('.html') || file.name.endsWith('.xlsx') || file.name.endsWith('.csv');
+                        const viewButton = isViewable ? `
+                            <button class="btn-small btn-view" onclick="viewFile('${file.path}', '${file.name}')">
+                                👁️ View
+                            </button>
+                        ` : '';
+                        
+                        return `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-meta">
+                                    ${file.description} • ${formatSize(file.size)} • ${file.modified}
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                ${viewButton}
+                                <button class="btn-small btn-download" onclick="downloadFile('${file.path}')">
+                                    ⬇️ Download
+                                </button>
+                            </div>
+                        </div>
+                    `}).join('');
+                });
+        }
+
+        function startUpdate() {
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(updateStatus, 1000);  // Every 1 second for input detection
+            updateStatus();
+        }
+
+        function downloadFile(path) {
+            window.location.href = `/api/download/${path}`;
+        }
+
+        function viewFile(path, filename) {
+            if (filename.endsWith('.html')) {
+                // Open HTML in new tab
+                window.open(`/api/view/${path}`, '_blank');
+            } else if (filename.endsWith('.xlsx') || filename.endsWith('.csv')) {
+                // For Excel/CSV, we'll use download (can't view directly in browser easily)
+                // But we can add a modal viewer later if needed
+                alert('Excel viewer coming soon! Downloading file instead...');
+                downloadFile(path);
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle Enter key in input
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('userInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendInput();
+                }
+            });
+        });
+
+        // Initialize
+        updateStatus();
+        updateFiles();
+        setInterval(updateFiles, 5000);
+    </script>
+</body>
+</html>

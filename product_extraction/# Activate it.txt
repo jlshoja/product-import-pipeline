@@ -1,0 +1,3 @@
+# Activate it
+# Windows:
+venv\Scripts\activate

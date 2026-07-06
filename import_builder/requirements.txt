@@ -1,0 +1,18 @@
+# WooCommerce Generator V9 - Requirements
+# نصب با: pip install -r requirements.txt
+
+# Core dependencies
+pandas>=1.3.0
+openpyxl>=3.0.9
+
+# Web Panel dependencies
+Flask>=2.0.0
+Werkzeug>=2.0.0
+
+# Optional (for progress bars)
+tqdm>=4.62.0
+
+# Optional (for better Excel formatting)
+xlsxwriter>=3.0.0
+
+# Python version required: 3.7+

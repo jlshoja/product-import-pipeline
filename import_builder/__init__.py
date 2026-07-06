@@ -1,0 +1,3 @@
+"""
+WooCommerce Generator - Source Modules
+"""
