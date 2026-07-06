@@ -27,6 +27,7 @@ from common.excel_utils import (
     RIGHT_CENTER,
     excel_writer,
 )
+from common.file_utils import ensure_directory
 
 COL_WIDTHS = {'A': 3.44, 'B': 18.22, 'C': 37.11}
 
@@ -94,7 +95,7 @@ def generate_new_products_excel(
 
     try:
         output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        ensure_directory(output_dir)
 
         date_str = date_str or datetime.now().strftime('%Y-%m-%d')
         output_path = output_dir / f'extracted_products_new_{date_str}.xlsx'
@@ -149,7 +150,7 @@ def generate_price_changes_excel(
 
     try:
         output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        ensure_directory(output_dir)
 
         date_str = date_str or datetime.now().strftime('%Y-%m-%d')
         output_path = output_dir / f'extracted_products_changes_{date_str}.xlsx'
@@ -230,7 +231,7 @@ def generate_html_report(
 </body>
 </html>
 """
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_directory(output_path.parent)
 
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
@@ -263,9 +264,9 @@ def generate_excel_report(
         True if successful
     """
     try:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_directory(output_path.parent)
 
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        with excel_writer(output_path) as writer:
             current_df.to_excel(writer, sheet_name='محصولات فعلی', index=False)
 
             if new_products:
