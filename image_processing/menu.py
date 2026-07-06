@@ -5,8 +5,12 @@ Image Processing Pipeline - Interactive Menu
 
 import os
 import sys
-import json
 import subprocess
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from product_extraction.common.progress_utils import load_json_state
 
 
 # ============================================================
@@ -23,6 +27,14 @@ REMOVE_BG         = False
 BG_COLOR          = "white"   # white / black / transparent
 DETECT_COLOR      = True
 # ============================================================
+
+DEFAULT_DOWNLOAD_STATE = {
+    "completed_pages": [],
+    "failed_images": {},
+    "no_image_pages": [],
+    "last_page": 0,
+    "session_folder": None,
+}
 
 
 CYAN   = "\033[96m"
@@ -88,8 +100,7 @@ def get_download_state():
     if not os.path.exists(state_file):
         return None
     try:
-        with open(state_file, "r", encoding="utf-8") as f:
-            state = json.load(f)
+        state = load_json_state(state_file, DEFAULT_DOWNLOAD_STATE)
         completed       = len(state.get("completed_pages", []))
         no_image        = len(state.get("no_image_pages", []))
         failed_products = len(state.get("failed_images", {}))

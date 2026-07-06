@@ -13,7 +13,20 @@ from selenium.webdriver.support import expected_conditions as EC
 import string
 import logging
 from datetime import datetime
-import json
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from product_extraction.common.progress_utils import load_json_state, save_json_state
+
+
+DEFAULT_DOWNLOAD_STATE = {
+    'completed_pages': [],
+    'failed_images': {},
+    'no_image_pages': [],
+    'last_page': 0,
+    'session_folder': None,
+}
 
 class AdvancedImageDownloader:
     def __init__(self, excel_path, output_folder, use_selenium=False, max_retries=3, proxy=None):
@@ -48,25 +61,13 @@ class AdvancedImageDownloader:
     def load_state_early(self):
         if os.path.exists(self.state_file):
             try:
-                with open(self.state_file, 'r', encoding='utf-8') as f:
-                    state = json.load(f)
-                    # مطمئن می‌شیم کلید no_image_pages همیشه وجود داره
-                    if 'no_image_pages' not in state:
-                        state['no_image_pages'] = []
-                    return state
+                return load_json_state(self.state_file, DEFAULT_DOWNLOAD_STATE)
             except Exception:
                 pass
-        return {
-            'completed_pages': [],
-            'failed_images': {},
-            'no_image_pages': [],   # ← جدید: محصولاتی که عکس extract نشد
-            'last_page': 0,
-            'session_folder': None
-        }
+        return load_json_state(self.state_file, DEFAULT_DOWNLOAD_STATE)
 
     def _save_state_raw(self):
-        with open(self.state_file, 'w', encoding='utf-8') as f:
-            json.dump(self.state, f, ensure_ascii=False, indent=2)
+        save_json_state(self.state_file, self.state)
 
     def extract_sku(self, product_name):
         import re
@@ -96,26 +97,16 @@ class AdvancedImageDownloader:
     def load_state(self):
         if os.path.exists(self.state_file):
             try:
-                with open(self.state_file, 'r', encoding='utf-8') as f:
-                    state = json.load(f)
-                    if 'no_image_pages' not in state:
-                        state['no_image_pages'] = []
-                    self.logger.info(f"[DONE] Previous state loaded: {len(state.get('completed_pages', []))} pages completed")
-                    return state
+                state = load_json_state(self.state_file, DEFAULT_DOWNLOAD_STATE)
+                self.logger.info(f"[DONE] Previous state loaded: {len(state.get('completed_pages', []))} pages completed")
+                return state
             except Exception as e:
                 self.logger.warning(f"Error loading state: {e}")
-        return {
-            'completed_pages': [],
-            'failed_images': {},
-            'no_image_pages': [],
-            'last_page': 0,
-            'session_folder': None
-        }
+        return load_json_state(self.state_file, DEFAULT_DOWNLOAD_STATE)
 
     def save_state(self):
         try:
-            with open(self.state_file, 'w', encoding='utf-8') as f:
-                json.dump(self.state, f, ensure_ascii=False, indent=2)
+            save_json_state(self.state_file, self.state)
         except Exception as e:
             self.logger.error(f"Error saving state: {e}")
 
