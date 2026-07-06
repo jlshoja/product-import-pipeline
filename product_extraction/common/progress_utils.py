@@ -12,6 +12,11 @@ from copy import deepcopy
 from pathlib import Path
 
 
+def copy_default_state(default_state=None):
+    """Return a deep-copied default progress state."""
+    return deepcopy(default_state or {})
+
+
 def normalize_state(state, default_state=None):
     """
     Return state with any missing default keys populated.
@@ -19,12 +24,32 @@ def normalize_state(state, default_state=None):
     Values already present in state are preserved. Defaults are deep-copied so
     callers can safely use list/dict defaults without sharing mutable objects.
     """
-    normalized = deepcopy(default_state or {})
+    normalized = copy_default_state(default_state)
 
     if state:
         normalized.update(state)
 
     return normalized
+
+
+def has_resume_data(state, keys=None):
+    """
+    Return True when a progress state contains resumable data.
+
+    When keys are provided, only those state entries are considered.
+    """
+    if not state:
+        return False
+
+    if keys is None:
+        return any(bool(value) for value in state.values())
+
+    return any(bool(state.get(key)) for key in keys)
+
+
+def ensure_state_defaults(state, default_state=None):
+    """Compatibility alias for default-state recovery."""
+    return normalize_state(state, default_state)
 
 
 def load_json_state(path, default_state=None):
