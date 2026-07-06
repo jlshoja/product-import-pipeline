@@ -123,6 +123,23 @@ def select_effective_price(regular_price, sale_price):
     return None
 
 
+def parse_numeric_price(value):
+    """Parse a numeric price value from raw workbook or CSV data."""
+    if _is_missing(value):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    price_text = str(value).replace(",", "").replace("\u066c", "").strip()
+    if not price_text:
+        return None
+
+    try:
+        return float(price_text)
+    except ValueError:
+        return None
+
+
 def format_persian_price(price):
     """Format price with a Persian thousands separator."""
     if _is_missing(price):

@@ -44,6 +44,7 @@ from common.date_utils import gregorian_to_jalali as _gregorian_to_jalali
 from common.file_utils import ensure_directory
 from common.price_utils import extract_price_from_text as _extract_price_from_text
 from common.price_utils import format_number as _format_number
+from common.price_utils import parse_numeric_price as _parse_numeric_price
 from common.text_utils import extract_product_code as _extract_product_code
 from common.text_utils import extract_product_name as _extract_product_name
 
@@ -150,15 +151,7 @@ def compare_data(current_df, previous_df):
     
     # Helper function to parse price
     def parse_price(price):
-        if pd.isna(price):
-            return None
-        if isinstance(price, (int, float)):
-            return float(price)
-        price_str = str(price).replace(',', '').replace('٬', '').strip()
-        try:
-            return float(price_str)
-        except:
-            return None
+        return _parse_numeric_price(price)
     
     # Create dictionaries
     previous_dict = {}
