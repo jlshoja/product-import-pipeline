@@ -2,7 +2,6 @@ import glob
 import os
 import re
 import sys
-import unicodedata
 from pathlib import Path
 
 # Enable direct-script execution (python trackers/compare_scans.py)
@@ -28,11 +27,15 @@ from common.excel_utils import (
     set_fill,
 )
 from common.file_utils import find_latest_dated
+from common.text_utils import (
+    extract_numeric_code as _extract_numeric_code,
+    normalize_text as _normalize_text,
+)
 
 
 def normalize_text(s):
     """حذف کاراکترهای Unicode نامرئی (مثل ZWNJ، ZWJ، Zero-Width Space و غیره)"""
-    return "".join(c for c in s if unicodedata.category(c) != "Cf").strip()
+    return _normalize_text(s)
 
 
 def parse_colors(val):
@@ -41,16 +44,9 @@ def parse_colors(val):
         return set()
     return {normalize_text(c) for c in str(val).split("|") if normalize_text(c)}
 
-
-CODE_RE = re.compile(r"(\d{3,6})")
-
-
 def extract_code(text):
     """استخراج کد عددی محصول (۳ تا ۶ رقم) از یک متن (مثل sku یا نام محصول)."""
-    if text is None:
-        return None
-    m = CODE_RE.search(normalize_text(str(text)))
-    return m.group(1) if m else None
+    return _extract_numeric_code(text, min_digits=3, max_digits=6)
 
 
 def effective_price(regular, sale):
