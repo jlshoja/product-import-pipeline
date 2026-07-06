@@ -109,6 +109,20 @@ def calculate_price_change(old_price, new_price):
     return (change, percent)
 
 
+def select_effective_price(regular_price, sale_price):
+    """Return the sale price when present, otherwise the regular price."""
+    for value in (sale_price, regular_price):
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text and text.lower() not in {"nan", "none"}:
+            try:
+                return int(float(text))
+            except ValueError:
+                continue
+    return None
+
+
 def format_persian_price(price):
     """Format price with a Persian thousands separator."""
     if _is_missing(price):

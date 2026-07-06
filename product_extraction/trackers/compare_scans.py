@@ -27,6 +27,7 @@ from common.excel_utils import (
     set_fill,
 )
 from common.file_utils import find_latest_dated
+from common.price_utils import select_effective_price as _select_effective_price
 from common.text_utils import (
     extract_numeric_code as _extract_numeric_code,
     normalize_text as _normalize_text,
@@ -51,19 +52,7 @@ def extract_code(text):
 
 def effective_price(regular, sale):
     """قیمت موثر: اگه sale_price داشت اون رو برگردان، وگرنه regular_price."""
-    s = str(sale or "").strip()
-    r = str(regular or "").strip()
-    if s and s.lower() not in ("nan", "none", ""):
-        try:
-            return int(float(s))
-        except:
-            pass
-    if r and r.lower() not in ("nan", "none", ""):
-        try:
-            return int(float(r))
-        except:
-            pass
-    return None
+    return _select_effective_price(regular, sale)
 
 
 # ─── توابع پیدا کردن فایل‌ها ──────────────────────────────────────
