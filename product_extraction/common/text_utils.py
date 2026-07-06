@@ -54,14 +54,17 @@ def extract_numeric_code(text, min_digits=3, max_digits=6):
     return match.group(1) if match else None
 
 
-def clean_product_name(text):
+def clean_product_name(text, normalize_digit_characters=True):
     """Remove price-like suffixes and normalize whitespace in a product name."""
     if not text:
         return ""
 
-    cleaned = normalize_digits(text)
+    cleaned = normalize_digits(text) if normalize_digit_characters else str(text)
+    digit_chars = ENGLISH_DIGITS if normalize_digit_characters else (
+        ENGLISH_DIGITS + PERSIAN_DIGITS + ARABIC_DIGITS
+    )
     cleaned = re.sub(
-        rf"[0-9{re.escape(THOUSANDS_SEPARATORS)}\s]+"
+        rf"[{re.escape(digit_chars + THOUSANDS_SEPARATORS)}\s]+"
         r"\s*(\u062a\u0648\u0645\u0627\u0646|\u0631\u06cc\u0627\u0644)",
         "",
         cleaned,
