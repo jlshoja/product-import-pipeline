@@ -798,4 +798,29 @@ Validation completed:
 
 Remaining risk:
 
-* `product_extraction/reports/dashboard_generator.py` was not changed in Phase 3 and may still have a small safe helper consolidation opportunity.
+* `product_extraction/reports/dashboard_generator.py` price display formatting remains intentionally local because its `"N/A"` and currency-label behavior differs from the shared generic formatter.
+
+---
+
+# Unit 7 Phase 4 Implementation Results
+
+Status: COMPLETE
+
+Implemented dashboard helper consolidation:
+
+```text
+product_extraction/reports/dashboard_generator.py
+```
+
+Behavior preserved:
+
+```python
+DashboardGenerator._get_persian_date()
+```
+
+Validation completed:
+
+* Compile validation for `dashboard_generator.py`
+* Targeted dashboard shared date helper behavior check
+* Import validation
+* Diff whitespace validation

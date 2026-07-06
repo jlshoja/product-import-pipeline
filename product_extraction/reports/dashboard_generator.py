@@ -32,6 +32,7 @@ try:
         REPORTS_DIR,
         TEMPLATES_DIR,
     )
+    from common.date_utils import get_persian_date as shared_get_persian_date
     from config import get_config
     from utils.logger import LoggerSetup
 
@@ -44,6 +45,7 @@ except ImportError:
         REPORTS_DIR,
         TEMPLATES_DIR,
     )
+    from common.date_utils import get_persian_date as shared_get_persian_date
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
@@ -361,9 +363,7 @@ class DashboardGenerator:
     def _get_persian_date(self) -> str:
         """دریافت تاریخ شمسی"""
         try:
-            from trackers.helpers import get_persian_date
-
-            return get_persian_date()
+            return shared_get_persian_date()
         except:
             # Fallback به تاریخ میلادی
             return datetime.now().strftime("%Y/%m/%d")

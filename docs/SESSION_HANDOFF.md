@@ -2,9 +2,9 @@
 
 ## Session Status
 
-Unit 7 - Shared Utility Consolidation Phase 3 completed.
+Unit 7 - Shared Utility Consolidation Phase 4 completed.
 
-Project is ready to begin Unit 7 Phase 4 after approval.
+Project is ready for Unit 7 commit phase after approval.
 
 ---
 
@@ -22,7 +22,7 @@ Pending
 
 ## Repository State
 
-Working Tree: Unit 7 Phase 3 code and documentation changes pending commit
+Working Tree: Unit 7 Phase 4 code and documentation changes pending commit
 
 Validation Status: Passed
 
@@ -139,9 +139,34 @@ Validation completed:
 
 ## Next Recommended Action
 
-Start Unit 7 Phase 4 after approval.
+Proceed to Unit 7 commit phase after approval.
 
-Phase 4 should stay narrow and only evaluate remaining safe helper consolidation in `product_extraction/reports/dashboard_generator.py`.
+No additional Unit 7 implementation changes should be made before the Phase 4 checkpoint is reviewed.
+
+---
+
+## Unit 7 Phase 4 Work Completed
+
+Summary:
+
+* Reviewed `product_extraction/reports/dashboard_generator.py` for remaining safe helper consolidation.
+* Routed dashboard Persian date lookup through `common.date_utils.get_persian_date`.
+* Preserved the existing Gregorian fallback behavior.
+* Left dashboard price formatting unchanged because consolidating it would require behavior-specific wrapper semantics and was not a clear enough Phase 4 win.
+
+Files modified:
+
+* `product_extraction/reports/dashboard_generator.py`
+* `docs/MIGRATION_STATUS.md`
+* `docs/SESSION_HANDOFF.md`
+* `docs/SHARED_UTILITY_INVENTORY.md`
+
+Validation completed:
+
+* `python -m py_compile product_extraction/reports/dashboard_generator.py`
+* Targeted dashboard shared date helper behavior check
+* Import validation for `product_extraction.reports.dashboard_generator`
+* `git diff --check`
 
 ---
 
@@ -219,4 +244,4 @@ Stop after Phase 4 and wait for approval before moving on.
 
 ## Ready State
 
-Unit 7 Phase 4 Authorized: NO, waiting for approval
+Unit 7 Commit Phase Authorized: NO, waiting for approval
