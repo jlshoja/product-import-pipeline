@@ -122,7 +122,9 @@ echo ===========================================================================
 echo Opening Product Extraction Web Panel
 echo ============================================================================
 echo.
-python product_extraction\web_panel_interactive.py
+pushd product_extraction
+python web_panel_interactive.py
+popd
 call :PAUSE_RETURN
 
 :IMPORT_BUILDER
@@ -132,7 +134,9 @@ echo ===========================================================================
 echo Starting Import Builder Menu
 echo ============================================================================
 echo.
-call import_builder\start.bat
+pushd import_builder
+call start.bat
+popd
 call :PAUSE_RETURN
 
 :IMAGE_PROCESSING
@@ -142,7 +146,9 @@ echo ===========================================================================
 echo Starting Image Processing Menu
 echo ============================================================================
 echo.
-call image_processing\run_menu.bat
+pushd image_processing
+call run_menu.bat
+popd
 call :PAUSE_RETURN
 
 :OPEN_REPORTS

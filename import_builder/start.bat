@@ -5,6 +5,9 @@ echo 🌐 Starting WooCommerce Web Panel
 echo ========================================
 echo.
 
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
+
 REM Check if web panel exists
 if not exist web_panel_v12.py (
     echo ❌ web_panel_v12.py not found!
