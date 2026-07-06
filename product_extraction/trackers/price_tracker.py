@@ -42,6 +42,7 @@ from common.excel_utils import (
 from common.date_utils import get_persian_date as _get_persian_date
 from common.date_utils import gregorian_to_jalali as _gregorian_to_jalali
 from common.file_utils import ensure_directory
+from common.file_utils import find_latest_dated
 from common.price_utils import extract_price_from_text as _extract_price_from_text
 from common.price_utils import format_number as _format_number
 from common.price_utils import parse_numeric_price as _parse_numeric_price
@@ -70,21 +71,15 @@ def find_latest_tracking_file():
     """
     پیدا کردن آخرین فایل پیگیری
     """
-    reports_dir = Path('reports')
-    
-    # چک کردن LATEST در فولدر reports
-    latest_file = reports_dir / 'product_tracking_LATEST.xlsx'
+    latest_file = Path('reports') / 'product_tracking_LATEST.xlsx'
     if latest_file.exists():
         return latest_file
-    
-    # پیدا کردن فایل‌های آرشیو در فولدر reports
-    archive_files = list(reports_dir.glob('product_tracking_????-??-??.xlsx'))
-    
-    if archive_files:
-        archive_files.sort(reverse=True)
-        return archive_files[0]
-    
-    return None
+
+    return find_latest_dated(
+        'reports',
+        'product_tracking_????-??-??.xlsx',
+        r'product_tracking_(\d{4}-\d{2}-\d{2})\.xlsx$',
+    )
 
 
 def load_previous_data(file_path):
