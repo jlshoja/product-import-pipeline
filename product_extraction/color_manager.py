@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # ─── Shared Excel utilities (Unit 3) ───────────────────────────────
 from common.excel_utils import read_excel, excel_writer
+from common.file_utils import ensure_exists
 
 # ===========================
 # رنگ‌های پیش‌فرض (Fallback)
@@ -76,7 +77,7 @@ class ColorManager:
         """بارگذاری رنگ‌ها از Excel یا استفاده از پیش‌فرض"""
         
         # بررسی وجود فایل
-        if not os.path.exists(self.excel_path):
+        if not ensure_exists(self.excel_path):
             if self.auto_create:
                 print(f" فایل {self.excel_path} وجود ندارد. در حال ساخت...")
                 self.create_default_excel()
@@ -197,7 +198,7 @@ class ColorManager:
         """
         try:
             # خواندن فایل موجود
-            if os.path.exists(self.excel_path):
+            if ensure_exists(self.excel_path):
                 df = read_excel(self.excel_path, sheet_name='Colors')
             else:
                 df = pd.DataFrame(columns=['Persian', 'English', 'Notes'])
