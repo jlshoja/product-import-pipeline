@@ -2,12 +2,13 @@
 
 Follow:
 
-docs/MIGRATION_OPERATIONAL_GUIDE.md
+docs/MIGRATION\_OPERATIONAL\_GUIDE.md
 
 Read:
 
-* docs/MIGRATION_STATUS.md
-* docs/SESSION_HANDOFF.md
+* docs/MIGRATION\_STATUS.md
+* docs/SESSION\_HANDOFF.md
+* doc/MIGRATION\_EXECUTION\_ROADMAP
 
 Determine:
 
@@ -38,3 +39,4 @@ Produce:
 4. Recommended next action
 5. Required documents
 6. Session plan
+
