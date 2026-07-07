@@ -50,7 +50,11 @@ except ImportError:
 
 HAS_FIXED_NAMING = HAS_V11_NAMING or HAS_V9_NAMING
 
-app = Flask(__name__)
+ASSET_TEMPLATE_DIR = Path(__file__).resolve().parent.parent / 'assets' / 'templates' / 'import_builder'
+LEGACY_TEMPLATE_DIR = Path(__file__).resolve().parent / 'templates'
+TEMPLATE_DIR = ASSET_TEMPLATE_DIR if ASSET_TEMPLATE_DIR.exists() else LEGACY_TEMPLATE_DIR
+
+app = Flask(__name__, template_folder=str(TEMPLATE_DIR))
 app.secret_key = os.environ.get('SECRET_KEY', 'woocommerce-generator-secret-key-2024')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024

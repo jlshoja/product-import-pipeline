@@ -57,7 +57,7 @@ Why this phase is now earlier than the original roadmap:
 
 ## Phase 2 - Data Classification and Canonical Data Layout
 
-Status: In Progress
+Status: Complete
 
 Objectives:
 
@@ -74,13 +74,14 @@ Current progress:
 
 - canonical layout defined in `MIGRATION2_PHASE2_LAYOUT_MAP.md`
 - shared mapping spreadsheets moved into `data/mappings/`
-- legacy fallback copies remain for compatibility until later cleanup
+- pipeline spreadsheets moved into `data/inputs/`, `data/intermediate/`, and `data/outputs/`
+- legacy color mapping fallback archived under `data/archives/`
 
 ---
 
 ## Phase 3 - Runtime Layout Standardization
 
-Status: Pending
+Status: Complete
 
 Objectives:
 
@@ -98,7 +99,7 @@ Why this phase matters:
 
 ## Phase 4 - Asset Layout Standardization
 
-Status: Pending
+Status: Complete
 
 Objectives:
 
@@ -116,7 +117,7 @@ Why this phase matters:
 
 ## Phase 5 - Module Migration to Shared Registries
 
-Status: Pending
+Status: Complete
 
 Objectives:
 
@@ -133,7 +134,7 @@ Why this phase comes after the registry design:
 
 ## Phase 6 - Legacy Cleanup and Consolidation
 
-Status: Pending
+Status: In Progress
 
 Objectives:
 

@@ -4,7 +4,12 @@
 
 This document is the handoff packet for continuing Migration 2 in a new AI session.
 
-It is intentionally self-contained. A new agent should be able to resume work using only this file and the linked migration docs.
+This file is retained as a legacy reference. The authoritative handoff package is now:
+
+- `SESSION_HANDOFF.md`
+- `NEXT_SESSION_PROMPT.md`
+
+It is intentionally self-contained as a historical record, but new sessions should start from the files above.
 
 ---
 
@@ -12,10 +17,16 @@ It is intentionally self-contained. A new agent should be able to resume work us
 
 - Phase 0 is complete.
 - Phase 1 is complete.
-- Phase 2 is in progress.
+- Phase 2 is complete.
+- Phase 3 is complete.
+- Phase 4 is complete.
+- Phase 5 is complete.
+- Phase 6 is in progress.
 - The shared mapping spreadsheets have been moved to `data/mappings/`.
-- The registry layer is active and used by the main consumers.
-- Legacy compatibility fallbacks remain for unmoved files.
+- The canonical runtime, asset, and data folders are populated.
+- Legacy compatibility fallbacks remain only where validation still depends on them.
+- Smoke tests for the migrated entry points passed.
+- The dashboard generator regression that blocked default output generation was fixed.
 
 ---
 
@@ -65,14 +76,10 @@ It is intentionally self-contained. A new agent should be able to resume work us
 
 ### Next likely moves
 
-- Move runtime state files:
-  - `product_extraction/checkpoint.xlsx`
-  - `product_extraction/link_scraper_progress.json`
-  - `image_processing/downloaded_images/download_state.json`
-- Move shared report output to the canonical runtime reports folder.
-- Decide whether `product_extraction/color_mapping.xlsx` stays as a fallback copy or gets retired.
-- Decide whether `image_processing/downloaded_images/` becomes a runtime cache area.
-- Decide whether module-local templates should be promoted into `assets/templates/`.
+- Review and remove stale documentation references to retired paths.
+- Review whether remaining compatibility readers can be retired after validation.
+- Decide whether additional compatibility readers can be retired after validation.
+- Review `data_standardization/` and `scrapers/Old/` for final disposition.
 
 ### Expected code updates
 
@@ -90,83 +97,21 @@ It is intentionally self-contained. A new agent should be able to resume work us
 - `LoggerSetup.get_main_logger()` initializes successfully.
 - `ColorManager` reads from `data/mappings/color_mapping.xlsx`.
 - `ProductNameManager` reads from `data/mappings/product_names.xlsx`.
+- Syntax parsing passed for the edited Python files.
+- Canonical `data/`, `runtime/`, `assets/`, and `data/archives/` paths were verified on disk.
+- Smoke tests for `product_extraction.main`, `DashboardGenerator`, `product_extraction.web_panel_interactive`, `import_builder.web_panel_v12`, and `image_processing.menu` passed.
 
 ---
 
 ## Risks
 
 - Some scripts still use legacy filename literals.
-- Some workflows still depend on module-local paths.
-- `product_extraction/color_mapping.xlsx` is still used as a fallback copy.
-- Runtime move targets have not yet been physically created for all workflows.
+- Some workflows still depend on compatibility readers for legacy recovery paths.
+- Stale documentation can still point future maintainers at retired paths.
+- Historical image download sessions may be mistaken for canonical data.
 
 ---
 
 ## Continuation Prompt
 
-Use the following prompt in the next AI session:
-
-```text
-You are continuing Migration 2 in the repository at:
-E:\Luxbaz\All Codes\Projects\product-import-pipeline
-
-Context:
-- Phase 0 is complete.
-- Phase 1 is complete.
-- Phase 2 is in progress.
-- Shared mapping spreadsheets have already been moved to data/mappings/.
-- The shared registry layer is already implemented and used by the main consumers.
-- Legacy compatibility fallbacks remain in place for unmoved files.
-
-Read these documents first:
-- docs/migration2/MIGRATION2_STATUS.md
-- docs/migration2/MIGRATION2_ROADMAP.md
-- docs/migration2/MIGRATION2_PHASE2_LAYOUT_MAP.md
-- docs/migration2/MIGRATION2_ARCHITECTURE.md
-- docs/migration2/MIGRATION2_DISCOVERY_REPORT.md
-- docs/migration2/MIGRATION2_PROJECT_CHARTER.md
-
-Current canonical layout decisions:
-- data/inputs/ for incoming spreadsheets
-- data/intermediate/ for handoff spreadsheets
-- data/outputs/ for durable final outputs
-- data/mappings/ for shared Excel mapping tables
-- data/reference/ for samples and benchmark material
-- runtime/logs/ for logs
-- runtime/reports/ for generated reports
-- runtime/state/ for checkpoints and resume files
-- runtime/cache/ for transient working files
-- assets/templates/ for reusable templates
-- assets/help/ for help assets
-
-What has already been done:
-- Implemented shared path and file registries.
-- Updated config and main consumers to use them.
-- Moved import_builder/color_mapping.xlsx to data/mappings/color_mapping.xlsx.
-- Moved import_builder/product_names.xlsx to data/mappings/product_names.xlsx.
-- Verified the moved files load correctly.
-
-Your next task:
-1. Continue Phase 2 by classifying and moving the remaining low-risk runtime/state artifacts.
-2. Update any code that still writes to module-local runtime folders.
-3. Preserve compatibility for old paths until validation is complete.
-4. Update the migration docs after each completed move.
-
-Constraints:
-- Do not change business logic.
-- Do not delete legacy files unless the new location is verified.
-- Prefer small, reviewable moves.
-- Keep the repository functional after every step.
-
-Before editing, inspect the current state of:
-- product_extraction/checkpoint.xlsx
-- product_extraction/link_scraper_progress.json
-- product_extraction/reports/outputs/
-- image_processing/downloaded_images/
-
-Deliverables expected from you:
-- Updated code for the next runtime move.
-- Updated migration docs.
-- A concise summary of what was moved and what remains.
-```
-
+Use `NEXT_SESSION_PROMPT.md` as the authoritative prompt for the next session.

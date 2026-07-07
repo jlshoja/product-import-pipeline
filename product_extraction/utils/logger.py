@@ -13,14 +13,14 @@ from typing import Optional
 
 try:
     from common.file_registry import get_file, has_file
-    from common.path_registry import LOGS_DIR
+    from common.path_registry import LOGS_DIR, RUNTIME_LOGS_DIR
     from config import get_config
 
 except ImportError:
     from common.file_registry import get_file, has_file
-    from common.path_registry import LOGS_DIR
+    from common.path_registry import LOGS_DIR, RUNTIME_LOGS_DIR
 
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+RUNTIME_LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ===========================
 # ‌  Console Output
@@ -127,9 +127,9 @@ class LoggerSetup:
             if log_file is None:
                 registry_key = f"{name}_log"
                 if has_file(registry_key):
-                    log_file = LOGS_DIR / get_file(registry_key)
+                    log_file = RUNTIME_LOGS_DIR / get_file(registry_key)
                 else:
-                    log_file = LOGS_DIR / f"{name}.log"
+                    log_file = RUNTIME_LOGS_DIR / f"{name}.log"
             else:
                 log_file = Path(log_file)
 
@@ -149,7 +149,7 @@ class LoggerSetup:
                 file_output = False
 
         # Error Handler
-        error_log = LOGS_DIR / get_file("error_log")
+        error_log = RUNTIME_LOGS_DIR / get_file("error_log")
         try:
             error_handler = RotatingFileHandler(
                 error_log, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
@@ -169,27 +169,27 @@ class LoggerSetup:
     def get_scraper_logger(cls) -> logging.Logger:
         """Logger  Scraper"""
         return cls.get_logger(
-            name="scraper", log_file=LOGS_DIR / get_file("scraper_log"), level="INFO"
+            name="scraper", log_file=RUNTIME_LOGS_DIR / get_file("scraper_log"), level="INFO"
         )
 
     @classmethod
     def get_tracker_logger(cls) -> logging.Logger:
         """Logger  Tracker"""
         return cls.get_logger(
-            name="tracker", log_file=LOGS_DIR / get_file("tracker_log"), level="INFO"
+            name="tracker", log_file=RUNTIME_LOGS_DIR / get_file("tracker_log"), level="INFO"
         )
 
     @classmethod
     def get_color_manager_logger(cls) -> logging.Logger:
         """Logger  Color Manager"""
         return cls.get_logger(
-            name="color_manager", log_file=LOGS_DIR / get_file("color_manager_log"), level="INFO"
+            name="color_manager", log_file=RUNTIME_LOGS_DIR / get_file("color_manager_log"), level="INFO"
         )
 
     @classmethod
     def get_main_logger(cls) -> logging.Logger:
         """Logger"""
-        return cls.get_logger(name="main", log_file=LOGS_DIR / get_file("main_log"), level="INFO")
+        return cls.get_logger(name="main", log_file=RUNTIME_LOGS_DIR / get_file("main_log"), level="INFO")
 
 
 # ===========================
@@ -319,7 +319,7 @@ def clear_old_logs(days: int = 30):
     cutoff_date = datetime.now() - timedelta(days=days)
 
     deleted_count = 0
-    for log_file in LOGS_DIR.glob("*.log*"):
+    for log_file in RUNTIME_LOGS_DIR.glob("*.log*"):
         if log_file.stat().st_mtime < cutoff_date.timestamp():
             log_file.unlink()
             deleted_count += 1
@@ -368,4 +368,4 @@ if __name__ == "__main__":
     log_system_info(logger)
 
     print("\n[OK] Logging system test completed!")
-    print(f"Log files are in: {LOGS_DIR}")
+    print(f"Log files are in: {RUNTIME_LOGS_DIR}")

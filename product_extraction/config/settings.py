@@ -17,22 +17,24 @@ try:
     from common.file_registry import get_file
     from common.path_registry import (
         DATA_DIR,
+        ARCHIVES_DIR,
         LEGACY_APP_DIR,
         LOGS_DIR,
         REPORTS_DIR,
         ROOT_DIR,
-        TEMPLATES_DIR,
+        ASSET_TEMPLATES_DIR,
         resolve_existing_path,
     )
 except ImportError:
     from product_extraction.common.file_registry import get_file
     from product_extraction.common.path_registry import (
         DATA_DIR,
+        ARCHIVES_DIR,
         LEGACY_APP_DIR,
         LOGS_DIR,
         REPORTS_DIR,
         ROOT_DIR,
-        TEMPLATES_DIR,
+        ASSET_TEMPLATES_DIR,
         resolve_existing_path,
     )
 
@@ -41,9 +43,10 @@ except ImportError:
 # ===========================
 
 BASE_DIR = ROOT_DIR
+TEMPLATES_DIR = ASSET_TEMPLATES_DIR
 
 #  ‌    
-for directory in [DATA_DIR, REPORTS_DIR, TEMPLATES_DIR, LOGS_DIR]:
+for directory in [DATA_DIR, REPORTS_DIR, ASSET_TEMPLATES_DIR, LOGS_DIR]:
     try:
         directory.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -119,7 +122,7 @@ class ColorConfig:
     
     color_mapping_file: Path = resolve_existing_path(
         DATA_DIR / get_file('color_mapping'),
-        LEGACY_APP_DIR / get_file('color_mapping'),
+        ARCHIVES_DIR / get_file('color_mapping'),
     )
     auto_create_mapping: bool = True
     
@@ -145,8 +148,7 @@ class TrackerConfig:
     
     # HTML Report Settings
     html_template: Path = resolve_existing_path(
-        TEMPLATES_DIR / get_file('dashboard_template'),
-        LEGACY_APP_DIR / 'reports' / 'templates' / get_file('dashboard_template'),
+        ASSET_TEMPLATES_DIR / get_file('dashboard_template'),
     )
     generate_html: bool = True
     

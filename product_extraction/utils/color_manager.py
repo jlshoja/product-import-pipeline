@@ -13,10 +13,10 @@ from datetime import datetime
 
 try:
     from common.file_registry import get_file
-    from common.path_registry import LEGACY_APP_DIR, ROOT_DIR, resolve_existing_path
+    from common.path_registry import ARCHIVES_DIR, ROOT_DIR, resolve_existing_path
 except ImportError:
     from product_extraction.common.file_registry import get_file
-    from product_extraction.common.path_registry import LEGACY_APP_DIR, ROOT_DIR, resolve_existing_path
+    from product_extraction.common.path_registry import ARCHIVES_DIR, ROOT_DIR, resolve_existing_path
 
 try:
     from common.color_utils import (
@@ -81,7 +81,7 @@ class ColorManager:
         """
         self.excel_path = excel_path or str(resolve_existing_path(
             ROOT_DIR / 'data' / 'mappings' / get_file('color_mapping'),
-            LEGACY_APP_DIR / get_file('color_mapping'),
+            ARCHIVES_DIR / get_file('color_mapping'),
         ))
         self.auto_create = auto_create
         self.color_dict = {}

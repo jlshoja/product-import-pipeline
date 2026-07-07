@@ -6,6 +6,8 @@ This document classifies the repository's current data, runtime, and asset files
 
 No files are moved in this phase. The goal is to define the canonical home for each artifact so later migration steps can move them in a controlled way.
 
+Note: this document is now also serving as a post-move ledger. Some tables retain pre-move source paths for traceability, while the canonical homes and physical move list below are the authoritative record of where each artifact now lives.
+
 ---
 
 ## Canonical Targets
@@ -68,7 +70,8 @@ Target layout:
 | Current location | Artifact type | Canonical home | Notes |
 | --- | --- | --- | --- |
 | `product_extraction/reports/templates/dashboard_template.html` | HTML template | `assets/templates/dashboard_template.html` | Reusable dashboard template. |
-| `import_builder/templates/index.html` | HTML template | `assets/templates/import_builder/index.html` | Module-specific UI template, if promoted. |
+| `product_extraction/templates/index_interactive.html` | HTML template | `assets/templates/product_extraction/index_interactive.html` | Interactive product-extraction UI template. |
+| `import_builder/templates/index.html` | HTML template | `assets/templates/import_builder/index.html` | Module-specific UI template. |
 | `import_builder/help/*.docx` and `*.pdf` | Help content | `assets/help/import_builder/` | User-facing support material. |
 | `image_processing/downloaded_images/` | Image output workspace | `assets/images/` or `runtime/cache/` | Generated images are transient unless promoted. |
 | `import_builder/config_v9.py` image source assumptions | External asset dependency | `assets/images/` | This is an assumption to be replaced, not a file move. |
@@ -97,8 +100,25 @@ Target layout:
 
 - `import_builder/color_mapping.xlsx` -> `data/mappings/color_mapping.xlsx`
 - `import_builder/product_names.xlsx` -> `data/mappings/product_names.xlsx`
+- `product_extraction/checkpoint.xlsx` -> `runtime/state/checkpoint.xlsx`
+- `product_extraction/link_scraper_progress.json` -> `runtime/state/link_scraper_progress.json`
+- `image_processing/downloaded_images/download_state.json` -> `runtime/state/download_state.json`
+- `product_extraction/page_source.html` -> `runtime/cache/page_source.html`
+- `product_extraction/logs/*.log` -> `runtime/logs/`
+- `product_extraction/reports/outputs/dashboard_2026-07-07.html` -> `runtime/reports/dashboard_2026-07-07.html`
+- `product_extraction/reports/templates/dashboard_template.html` -> `assets/templates/dashboard_template.html`
+- `product_extraction/templates/index_interactive.html` -> `assets/templates/product_extraction/index_interactive.html`
+- `import_builder/help/*.docx` and `*.pdf` -> `assets/help/import_builder/`
+- `import_builder/templates/index.html` -> `assets/templates/import_builder/index.html`
+- `product_extraction/archive_urls.xlsx` -> `data/inputs/archive_urls.xlsx`
+- `product_extraction/extracted_products.XLSX` -> `data/intermediate/extracted_products.xlsx`
+- `product_extraction/product_details_complete.xlsx` -> `data/outputs/product_details_complete.xlsx`
+- `product_extraction/color_mapping.xlsx` -> `data/archives/color_mapping.xlsx`
+- `product_extraction/checkpoint.xlsx`, `link_scraper_progress.json`, `page_source.html`, logs, and report outputs were retired after canonical verification.
+- `import_builder/templates/index.html` and `import_builder/help/*` were retired after canonical verification.
 
 Notes:
 
-- `product_extraction/color_mapping.xlsx` remains in place as a legacy fallback copy for now.
+- `product_extraction/color_mapping.xlsx` has been archived into `data/archives/` as the fallback copy.
 - The canonical mapping readers now point to `data/mappings/`.
+- Legacy runtime copies have been removed after verification.
