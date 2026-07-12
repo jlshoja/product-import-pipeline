@@ -1260,7 +1260,17 @@ def main():
     all_products = []
     retry_urls = retry_numbers = retry_names = None
 
-    if has_results or has_failed:
+    # Automatic mode: never prompt. Always start from scratch (full scan) so a
+    # previous run's partial state can't silently change behaviour.
+    auto_mode = os.getenv('AUTO_MODE') == '1'
+
+    if auto_mode and (has_results or has_failed):
+        all_products      = []
+        completed_numbers = set()
+        clear_progress()
+        print("\n[AUTO] Automatic mode - starting fresh (full scan), no prompts")
+        sys.stdout.flush()
+    elif has_results or has_failed:
         print(f"\n{'='*70}")
         print("📊 Previous run status:")
 

@@ -79,7 +79,7 @@ def generate_new_products_excel(
 
     Args:
         new_products : list of dicts, each must contain at minimum:
-                       'product_name' (or 'نام_محصول') and 'product_url' (or 'url')
+                       'product_name' (or 'name') and 'product_url' (or 'url')
         output_dir   : directory where the file will be saved
         date_str     : optional date suffix (default: today YYYY-MM-DD)
 
@@ -104,13 +104,13 @@ def generate_new_products_excel(
         normalised = []
         for p in new_products:
             normalised.append({
-                'Product Name': p.get('product_name') or p.get('نام_محصول') or p.get('name', ''),
+                'Product Name': p.get('product_name') or p.get('name', ''),
                 'Product URL':  p.get('product_url')  or p.get('url')          or p.get('link', ''),
             })
 
         wb = Workbook()
         ws = wb.active
-        ws.title = 'محصولات جدید'
+        ws.title = 'New Products'
         ws.sheet_view.rightToLeft = True
 
         _apply_extracted_style(ws, normalised, ['Product Name', 'Product URL'])
@@ -134,7 +134,7 @@ def generate_price_changes_excel(
 
     Args:
         price_changes : list of dicts, each must contain at minimum:
-                        'product_name' (or 'نام_محصول') and 'product_url' (or 'url')
+                        'product_name' (or 'name') and 'product_url' (or 'url')
         output_dir    : directory where the file will be saved
         date_str      : optional date suffix (default: today YYYY-MM-DD)
 
@@ -159,13 +159,13 @@ def generate_price_changes_excel(
         normalised = []
         for p in price_changes:
             normalised.append({
-                'Product Name': p.get('product_name') or p.get('نام_محصول') or p.get('name', ''),
+                'Product Name': p.get('product_name') or p.get('name', ''),
                 'Product URL':  p.get('product_url')  or p.get('url')          or p.get('link', ''),
             })
 
         wb = Workbook()
         ws = wb.active
-        ws.title = 'تغییرات قیمت'
+        ws.title = 'Price Changes'
         ws.sheet_view.rightToLeft = True
 
         _apply_extracted_style(ws, normalised, ['Product Name', 'Product URL'])
@@ -267,21 +267,21 @@ def generate_excel_report(
         ensure_directory(output_path.parent)
 
         with excel_writer(output_path) as writer:
-            current_df.to_excel(writer, sheet_name='محصولات فعلی', index=False)
+            current_df.to_excel(writer, sheet_name='Current Products', index=False)
 
             if new_products:
                 pd.DataFrame(new_products).to_excel(
-                    writer, sheet_name='محصولات جدید', index=False
+                    writer, sheet_name='New Products', index=False
                 )
 
             if price_changes:
                 pd.DataFrame(price_changes).to_excel(
-                    writer, sheet_name='تغییرات قیمت', index=False
+                    writer, sheet_name='Price Changes', index=False
                 )
 
             if removed_products:
                 pd.DataFrame(removed_products).to_excel(
-                    writer, sheet_name='محصولات حذف شده', index=False
+                    writer, sheet_name='Removed Products', index=False
                 )
 
         return True

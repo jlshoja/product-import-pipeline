@@ -95,6 +95,10 @@ def main():
     color_mapping_data = _load_reference_file(color_mapping_path)
     translator = None
 
+    # Track colors/names that Gemini could not resolve (for the auto-mode warning)
+    unresolved_colors = []
+    unresolved_names = []
+
     if color_mapping_data:
         logger.info("[Step 1] Processing colors...")
         df, color_count, non_standard = step_colors.process(df, color_mapping_data)
@@ -105,6 +109,12 @@ def main():
             translations = translator.translate_colors(list(non_standard.keys()))
             if translations:
                 _update_mapping_file(color_mapping_path, translations)
+            # Anything non-standard that Gemini did not return a translation for
+            resolved = set(translations.keys()) if translations else set()
+            unresolved_colors = [c for c in non_standard.keys() if c not in resolved]
+        elif non_standard:
+            # Gemini disabled: every non-standard color is unresolved
+            unresolved_colors = list(non_standard.keys())
     else:
         logger.warning("[Step 1] Skipped - color mapping file not found")
         non_standard = {}
@@ -156,6 +166,12 @@ def main():
             if name_translations:
                 names_path = MAPPINGS_DIR / get_file('product_names')
                 _update_mapping_file(names_path, name_translations, 'انگلیسی', 'فارسی')
+            # Anything unknown that Gemini did not return a translation for
+            resolved_names = set(name_translations.keys()) if name_translations else set()
+            unresolved_names = [w for w in unknown_words if w not in resolved_names]
+        elif unknown_words:
+            # Gemini disabled: every unknown word is unresolved
+            unresolved_names = list(unknown_words)
     else:
         logger.warning("[Step 6] Skipped - word index file not found")
 
@@ -191,7 +207,23 @@ def main():
         logger.info(f"Non-standard colors report: {report_path}")
 
     logger.info("Standardization complete!")
-    return True
+
+    if unresolved_colors:
+        logger.warning(
+            f"{len(unresolved_colors)} unknown color(s) could not be resolved by Gemini"
+        )
+    if unresolved_names:
+        logger.warning(
+            f"{len(unresolved_names)} unknown name(s) could not be resolved by Gemini"
+        )
+
+    # Return a truthy dict so callers that only check `if result:` keep working,
+    # while the auto pipeline can read the unresolved counts for its final warning.
+    return {
+        'success': True,
+        'unresolved_colors': unresolved_colors,
+        'unresolved_names': unresolved_names,
+    }
 
 
 if __name__ == '__main__':

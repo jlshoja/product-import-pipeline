@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Price History Manager
-مدیریت سوابق تغییرات قیمت محصولات
+Manages product price change history
 """
 
 import pandas as pd
@@ -15,19 +15,19 @@ from config.history_config import HISTORY_SETTINGS, HISTORY_COLUMNS
 
 
 class PriceHistoryManager:
-    """مدیریت سوابق تغییرات قیمت"""
+    """Manages price change history"""
     
     def __init__(self, reports_dir):
         self.reports_dir = Path(reports_dir)
         self.history_file = self.reports_dir / HISTORY_SETTINGS['history_filename']
         self.archive_dir = self.reports_dir / HISTORY_SETTINGS['archive_folder']
         
-        # ایجاد پوشه بایگانی
+        # Create archive folder
         if HISTORY_SETTINGS['archive_old_data']:
             self.archive_dir.mkdir(exist_ok=True)
     
     def load_history(self):
-        """بارگذاری سوابق موجود"""
+        """Load existing history"""
         if self.history_file.exists():
             try:
                 df = pd.read_excel(self.history_file)
@@ -43,14 +43,14 @@ class PriceHistoryManager:
     def add_price_change(self, sku, product_name, old_price, new_price, 
                         change_type, persian_date):
         """
-        اضافه کردن یک تغییر قیمت به سوابق
-        
-        change_type: 'افزایش', 'کاهش', 'جدید', 'حذف'
+        Add a price change to the history
+
+        change_type: 'increase', 'decrease', 'new', 'removed'
         """
         if not HISTORY_SETTINGS['enable_history']:
             return
         
-        # محاسبه تغییرات
+        # Calculate the change
         if old_price and new_price:
             change_amount = new_price - old_price
             change_percent = (change_amount / old_price) * 100 if old_price > 0 else 0
@@ -58,44 +58,44 @@ class PriceHistoryManager:
             change_amount = new_price if new_price else 0
             change_percent = 0
         
-        # ساخت رکورد جدید
+        # Build the new record
         new_record = {
             'sku': sku,
-            'نام_محصول': product_name,
-            'تاریخ_تغییر': datetime.now().strftime('%Y-%m-%d'),
-            'تاریخ_شمسی': persian_date,
-            'قیمت_قبلی': old_price if old_price else 0,
-            'قیمت_جدید': new_price if new_price else 0,
-            'تغییر_تومان': change_amount,
-            'تغییر_درصد': f"{change_percent:+.2f}%",
-            'نوع_تغییر': change_type,
+            'product_name': product_name,
+            'change_date': datetime.now().strftime('%Y-%m-%d'),
+            'persian_date': persian_date,
+            'old_price': old_price if old_price else 0,
+            'new_price': new_price if new_price else 0,
+            'change_amount': change_amount,
+            'change_percent': f"{change_percent:+.2f}%",
+            'change_type': change_type,
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
         return new_record
     
     def save_history(self, new_records):
-        """ذخیره سوابق با محدودیت تعداد"""
+        """Save history with a record-count limit"""
         if not HISTORY_SETTINGS['enable_history'] or not new_records:
             return
         
-        # بارگذاری سوابق موجود
+        # Load existing history
         history_df = self.load_history()
         
-        # اضافه کردن رکوردهای جدید
+        # Add the new records
         new_df = pd.DataFrame(new_records)
         history_df = pd.concat([history_df, new_df], ignore_index=True)
         
-        # محدود کردن تعداد رکوردها برای هر محصول
+        # Limit the number of records per product
         max_records = HISTORY_SETTINGS['max_records_per_product']
         
         if 'sku' in history_df.columns:
-            # نگهداری آخرین N رکورد برای هر SKU
+            # Keep the latest N records per SKU
             history_df = history_df.sort_values('timestamp', ascending=False)
             history_df = history_df.groupby('sku').head(max_records)
             history_df = history_df.sort_values(['sku', 'timestamp'], ascending=[True, False])
         
-        # ذخیره
+        # Save
         try:
             history_df.to_excel(self.history_file, index=False, engine='openpyxl')
             print(f"\n[OK] History saved: {len(history_df)} total records")
@@ -107,7 +107,7 @@ class PriceHistoryManager:
             sys.stdout.flush()
     
     def create_daily_snapshot(self, current_df):
-        """ایجاد snapshot روزانه"""
+        """Create a daily snapshot"""
         if not HISTORY_SETTINGS['keep_daily_snapshots']:
             return
         
@@ -123,11 +123,11 @@ class PriceHistoryManager:
                 print(f"[WARNING] Could not create snapshot: {e}")
                 sys.stdout.flush()
         
-        # حذف snapshot های قدیمی
+        # Delete old snapshots
         self.cleanup_old_snapshots()
     
     def cleanup_old_snapshots(self):
-        """حذف snapshot های قدیمی‌تر از N روز"""
+        """Delete snapshots older than N days"""
         if not self.archive_dir.exists():
             return
         
@@ -149,7 +149,7 @@ class PriceHistoryManager:
             sys.stdout.flush()
     
     def get_product_history(self, sku):
-        """دریافت سوابق یک محصول خاص"""
+        """Get the history of a specific product"""
         history_df = self.load_history()
         if 'sku' in history_df.columns:
             product_history = history_df[history_df['sku'] == sku].sort_values('timestamp', ascending=False)
@@ -157,7 +157,7 @@ class PriceHistoryManager:
         return pd.DataFrame()
     
     def get_statistics(self):
-        """آمار سوابق"""
+        """History statistics"""
         history_df = self.load_history()
         
         if history_df.empty:
@@ -170,10 +170,10 @@ class PriceHistoryManager:
         stats = {
             'total_records': len(history_df),
             'total_products': history_df['sku'].nunique() if 'sku' in history_df.columns else 0,
-            'date_range': f"{history_df['تاریخ_تغییر'].min()} to {history_df['تاریخ_تغییر'].max()}" if 'تاریخ_تغییر' in history_df.columns else None,
-            'price_increases': len(history_df[history_df['نوع_تغییر'] == 'افزایش']) if 'نوع_تغییر' in history_df.columns else 0,
-            'price_decreases': len(history_df[history_df['نوع_تغییر'] == 'کاهش']) if 'نوع_تغییر' in history_df.columns else 0,
-            'new_products': len(history_df[history_df['نوع_تغییر'] == 'جدید']) if 'نوع_تغییر' in history_df.columns else 0,
+            'date_range': f"{history_df['change_date'].min()} to {history_df['change_date'].max()}" if 'change_date' in history_df.columns else None,
+            'price_increases': len(history_df[history_df['change_type'] == 'increase']) if 'change_type' in history_df.columns else 0,
+            'price_decreases': len(history_df[history_df['change_type'] == 'decrease']) if 'change_type' in history_df.columns else 0,
+            'new_products': len(history_df[history_df['change_type'] == 'new']) if 'change_type' in history_df.columns else 0,
         }
         
         return stats

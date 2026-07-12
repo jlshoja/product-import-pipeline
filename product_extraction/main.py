@@ -5,6 +5,7 @@ Main Entry Point -
 """
 
 import sys
+import os
 from pathlib import Path
 import argparse
 
@@ -135,6 +136,164 @@ class ProductScraperApp:
         except Exception as e:
             self.logger.error(f"Error in Import Builder: {e}", exc_info=True)
             return False
+
+    @log_execution_time()
+    def run_image_processing(self):
+        """Run image download + processing non-interactively (automatic mode).
+
+        The image_processing scripts are driven entirely by env vars / CLI flags,
+        so we invoke them directly (bypassing the interactive menu.py) with the
+        same paths and settings menu.py would use. Two sub-steps run in order:
+        download (Image_Downloader.py) then process/compress (unified_image_processor.py).
+        """
+        import subprocess
+
+        self.logger.info("="*70)
+        self.logger.info("[IMG] Running Image Processing (download + process)")
+        self.logger.info("="*70)
+
+        image_dir = ROOT_DIR / "image_processing"
+        data_outputs = ROOT_DIR / "data" / "outputs"
+
+        # Paths mirror image_processing/menu.py defaults
+        excel_file        = str(ROOT_DIR / "data" / "intermediate" / "extracted_products.xlsx")
+        downloaded_folder = str(data_outputs / "downloaded_images")
+        output_folder     = str(data_outputs / "processed_images")
+
+        if not Path(excel_file).exists():
+            self.logger.error(f"Image input not found: {excel_file}")
+            return False
+
+        # --- Sub-step 1: download images (fresh, full, no prompts) ---
+        download_env = os.environ.copy()
+        download_env["IMG_EXCEL"]    = excel_file
+        download_env["IMG_OUTPUT"]   = downloaded_folder
+        download_env["IMG_SELENIUM"] = "1"
+        download_env["IMG_RETRIES"]  = "3"
+        download_env["IMG_MODE"]     = "full"
+        download_env["IMG_RESUME"]   = "fresh"
+
+        self.logger.info("[IMG] Step 1/2 - Downloading images (full, fresh)...")
+        result = subprocess.run(
+            [sys.executable, "Image_Downloader.py"],
+            cwd=str(image_dir),
+            env=download_env,
+        )
+        if result.returncode != 0:
+            self.logger.error("Image download failed")
+            return False
+
+        # --- Sub-step 2: process and compress images ---
+        process_cmd = [
+            sys.executable, "unified_image_processor.py",
+            "-i", downloaded_folder,
+            "-o", output_folder,
+            "-s", "50",   # gallery size KB (menu.py default)
+            "-m", "100",  # main size KB (menu.py default)
+        ]
+
+        self.logger.info("[IMG] Step 2/2 - Processing and compressing images...")
+        result = subprocess.run(process_cmd, cwd=str(image_dir))
+        if result.returncode != 0:
+            self.logger.error("Image processing failed")
+            return False
+
+        self.logger.info(" Image Processing completed successfully")
+        return True
+
+    def run_auto_pipeline(self):
+        """Run the entire pipeline unattended (automatic execution mode).
+
+        Order: link scrape -> spec scrape (fresh) -> standardize ->
+        image download+process -> import build. No interactive prompts.
+        Sets AUTO_MODE=1 so spec_scraper skips its resume menu. At the end,
+        prints an English warning if Gemini left any unknown colors/names
+        unresolved during standardization.
+        """
+        os.environ['AUTO_MODE'] = '1'
+
+        self.logger.info("\n Starting AUTOMATIC pipeline execution...\n")
+
+        # Track the standardizer's unresolved-unknown report for the final warning
+        unresolved_colors = []
+        unresolved_names = []
+
+        steps = [
+            ("Link Scraper", self.run_link_scraper),
+            ("Spec Scraper", self.run_spec_scraper),
+            ("Standardizer", self.run_standardizer),
+            ("Image Processing", self.run_image_processing),
+            ("Import Builder", self.run_import_builder),
+        ]
+
+        results = {}
+        for step_name, step_func in steps:
+            self.logger.info(f"\n{'='*70}")
+            self.logger.info(f"  {step_name}")
+            self.logger.info(f"{'='*70}")
+
+            try:
+                result = step_func()
+
+                # Standardizer returns a dict with unresolved counts
+                if step_name == "Standardizer" and isinstance(result, dict):
+                    unresolved_colors = result.get('unresolved_colors', [])
+                    unresolved_names = result.get('unresolved_names', [])
+
+                results[step_name] = bool(result)
+
+                if result:
+                    self.logger.info(f" {step_name} succeeded")
+                else:
+                    self.logger.warning(f"  {step_name} failed")
+                    # Stop the chain: a failed step means downstream input is missing
+                    self.logger.error(f" Aborting automatic pipeline at: {step_name}")
+                    break
+            except Exception as e:
+                self.logger.error(f" Error in {step_name}: {e}", exc_info=True)
+                results[step_name] = False
+                break
+
+        # Display summary
+        self.logger.info("\n" + "="*70)
+        self.logger.info(" Automatic Pipeline Summary")
+        self.logger.info("="*70)
+
+        for step_name, _ in steps:
+            if step_name in results:
+                status = " Success" if results[step_name] else " Failed"
+            else:
+                status = " Skipped"
+            self.logger.info(f"  {step_name:<20}: {status}")
+
+        self.logger.info("="*70)
+
+        # Final English warning about Gemini-unresolved unknowns
+        if unresolved_colors or unresolved_names:
+            self.logger.warning("\n" + "!"*70)
+            self.logger.warning("WARNING: Some items could not be translated by Gemini")
+            if unresolved_colors:
+                self.logger.warning(
+                    f"  {len(unresolved_colors)} unknown color(s) remain unresolved: "
+                    f"{', '.join(str(c) for c in unresolved_colors[:20])}"
+                    + (" ..." if len(unresolved_colors) > 20 else "")
+                )
+            if unresolved_names:
+                self.logger.warning(
+                    f"  {len(unresolved_names)} unknown name(s) remain unresolved: "
+                    f"{', '.join(str(n) for n in unresolved_names[:20])}"
+                    + (" ..." if len(unresolved_names) > 20 else "")
+                )
+            self.logger.warning("  Please review and add them to the mapping files manually.")
+            self.logger.warning("!"*70 + "\n")
+
+        all_success = len(results) == len(steps) and all(results.values())
+        if all_success:
+            self.logger.info(" Automatic pipeline completed successfully!")
+        else:
+            self.logger.warning("  Automatic pipeline did not complete all steps")
+
+        return all_success
 
     @log_execution_time()
     def run_price_tracker(self, input_file=get_file('extracted_products')):
@@ -283,7 +442,7 @@ def main():
     parser.add_argument(
         'command',
         nargs='?',
-        choices=['scrape-links', 'scrape-specs', 'standardize', 'import-build', 'track', 'dashboard', 'full', 'test'],
+        choices=['scrape-links', 'scrape-specs', 'standardize', 'import-build', 'track', 'dashboard', 'full', 'auto', 'test'],
         default='full',
         help='Command to execute'
     )
@@ -338,6 +497,8 @@ def main():
         success = app.generate_dashboard()
     elif args.command == 'test':
         success = app.run_tests()
+    elif args.command == 'auto':
+        success = app.run_auto_pipeline()
     else:  # full
         success = app.run_full_pipeline()
     
