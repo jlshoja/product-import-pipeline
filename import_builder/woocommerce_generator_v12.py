@@ -480,15 +480,22 @@ def process_products_v12(input_file, process_images=False, source_images_folder=
         missing_count = 0
         
         for source_name, target_name in image_mappings.items():
-            # جستجو با پسوندهای مختلف
             extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.JPG', '.JPEG', '.PNG', '.WEBP']
             source_path = None
-            
+
+            # Try exact match first (e.g. 5718a.webp)
             for ext in extensions:
                 test_path = Path(source_images_folder) / f"{source_name}{ext}"
                 if test_path.exists():
                     source_path = test_path
                     break
+
+            # Try prefix match (e.g. 5718a_black.webp)
+            if not source_path:
+                for f in Path(source_images_folder).iterdir():
+                    if f.stem.startswith(source_name + '_') and f.suffix.lower() in [e.lower() for e in extensions]:
+                        source_path = f
+                        break
             
             if source_path:
                 dest_path = Path(dest_images_folder) / target_name

@@ -8,23 +8,46 @@ Runs WooCommerce CSV generation without web interface.
 
 import os
 import sys
-import shutil
+import re
 from pathlib import Path
+from datetime import datetime
 
 _this_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(_this_dir))
 
 from paths import ROOT_DIR, IMPORT_BUILDER_UPLOADS_DIR
 
+_DATE_FOLDER_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$')
+
+
+def _get_latest_dated_folder(base_path):
+    """Find the latest date-stamped subfolder (format: 2026-07-12_13-29-57)."""
+    if not base_path.exists():
+        return base_path
+    dated = [
+        f.name for f in base_path.iterdir()
+        if f.is_dir() and _DATE_FOLDER_PATTERN.match(f.name)
+    ]
+    if not dated:
+        return base_path
+    return base_path / sorted(dated)[-1]
+
 
 def main():
     input_file = ROOT_DIR / "data" / "outputs" / "product.csv"
-    source_images = ROOT_DIR / "data" / "outputs" / "processed_images"
-    dest_images = ROOT_DIR / "data" / "outputs" / "renamed_images"
+    source_images_base = ROOT_DIR / "data" / "outputs" / "processed_images"
+    source_images = _get_latest_dated_folder(source_images_base)
+    dest_images = ROOT_DIR / "data" / "outputs" / "renamed_images" / datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     if not input_file.exists():
         print(f"ERROR: Input file not found: {input_file}")
         return False
+
+    if not source_images.exists() or not any(source_images.iterdir()):
+        print(f"ERROR: No processed images found in: {source_images}")
+        return False
+
+    print(f"Source images: {source_images}")
 
     # Change to import_builder directory so relative paths (sku_list.txt etc.) resolve correctly
     original_cwd = os.getcwd()
