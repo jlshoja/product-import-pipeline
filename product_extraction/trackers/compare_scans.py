@@ -640,6 +640,26 @@ if __name__ == "__main__":
             print(f"→ فایل لینک محصولات:       پیدا نشد (شیت لینک‌ها ساخته نمی‌شه)")
         print()
 
+        # ── هشدار ترتیب زمانی ────────────────────────────────────────
+        # WooCommerce CSV باید وضعیت *قبلی* سایت باشد؛ یعنی قدیمی‌تر از اسکن جدید.
+        # اگر CSV جدیدتر از اسکن باشد احتمالاً از همین اسکن ساخته شده و
+        # مقایسه بی‌معنی (تقریباً بدون تغییر) خواهد بود.
+        _scan_ts = re.search(r"(\d{8}_\d{6})", os.path.basename(scan_path))
+        _woo_ts = re.search(r"(\d{8}_\d{6})", os.path.basename(woo_path))
+        if _scan_ts and _woo_ts and _woo_ts.group(1) >= _scan_ts.group(1):
+            print("⚠️  هشدار: فایل WooCommerce از اسکن جدیدتر (یا هم‌زمان) است.")
+            print(f"    WooCommerce: {_woo_ts.group(1)}")
+            print(f"    اسکن:        {_scan_ts.group(1)}")
+            print("    احتمالاً CSV از همین اسکن ساخته شده و تغییری دیده نمی‌شود.")
+            if sys.stdin.isatty():
+                answer = input("    ادامه می‌دهید؟ (y/N): ").strip().lower()
+                if answer not in ("y", "yes"):
+                    print("لغو شد.")
+                    sys.exit(0)
+            else:
+                print("    (حالت غیرتعاملی — ادامه با همین فایل‌ها)")
+            print()
+
     elif len(sys.argv) in (4, 5):
         scan_path, woo_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3]
         if len(sys.argv) == 5:
