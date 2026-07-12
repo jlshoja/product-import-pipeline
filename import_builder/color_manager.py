@@ -255,11 +255,11 @@ class ColorManager:
             if new_rows:
                 df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
                 df.to_excel(self.excel_path, index=False)
-                print(f"✅ {added} رنگ ناشناخته به {self.excel_path} اضافه شد")
+                print(f"Added {added} unknown colors to {self.excel_path}")
                 for row in new_rows:
-                    print(f"   ➕ '{row['Persian']}' (انگلیسی خالی - نیاز به تکمیل)")
+                    print(f"   + '{row['Persian']}' (English empty - needs translation)")
             else:
-                print("ℹ️ همه رنگ‌های ناشناخته قبلاً در فایل موجودند")
+                print("All unknown colors already exist in file")
             
             return added
         

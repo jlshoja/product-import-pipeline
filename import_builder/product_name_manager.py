@@ -135,10 +135,10 @@ class ProductNameManager:
         
         if not os.path.exists(self.excel_path):
             if self.auto_create:
-                print(f"📝 فایل {self.excel_path} وجود ندارد. در حال ساخت...")
+                print(f"File {self.excel_path} not found. Creating...")
                 self.create_default_excel()
             else:
-                print(f"⚠️ فایل {self.excel_path} یافت نشد. استفاده از نام‌های پیش‌فرض...")
+                print(f"File {self.excel_path} not found. Using defaults...")
                 self.product_dict = DEFAULT_PRODUCT_TRANSLATION.copy()
                 return
         
@@ -152,11 +152,11 @@ class ProductNameManager:
                 if persian and english and persian != 'nan' and english != 'nan':
                     self.product_dict[persian] = english
             
-            print(f"✅ {len(self.product_dict)} نام محصول از {self.excel_path} بارگذاری شد")
+            print(f"Loaded {len(self.product_dict)} product names from {self.excel_path}")
             
         except Exception as e:
-            print(f"⚠️ خطا در خواندن فایل Excel: {e}")
-            print(f"   استفاده از نام‌های پیش‌فرض...")
+            print(f"Error reading Excel file: {e}")
+            print(f"   Using defaults...")
             self.product_dict = DEFAULT_PRODUCT_TRANSLATION.copy()
     
     def create_default_excel(self):
@@ -186,11 +186,11 @@ class ProductNameManager:
                     cell.font = header_font
                     cell.alignment = header_alignment
             
-            print(f"✅ فایل {self.excel_path} با {len(DEFAULT_PRODUCT_TRANSLATION)} محصول ساخته شد")
+            print(f"Created {self.excel_path} with {len(DEFAULT_PRODUCT_TRANSLATION)} products")
             self.product_dict = DEFAULT_PRODUCT_TRANSLATION.copy()
             
         except Exception as e:
-            print(f"❌ خطا در ساخت فایل Excel: {e}")
+            print(f"Error creating Excel file: {e}")
             self.product_dict = DEFAULT_PRODUCT_TRANSLATION.copy()
     
     def translate_product(self, persian_name):
@@ -221,7 +221,7 @@ class ProductNameManager:
             self.missing_products.append(name)
             
             # لاگ به کنسول
-            print(f"⚠️ محصول '{name}' در فایل یافت نشد - استفاده از transliterate")
+            print(f"Product '{name}' not found in mapping - using transliterate")
             
             # لاگ به فایل
             self._log_missing_product(name)
@@ -251,7 +251,7 @@ class ProductNameManager:
                 df = pd.DataFrame(columns=['Persian', 'English', 'Notes'])
             
             if persian in df['Persian'].values:
-                print(f"⚠️ محصول '{persian}' قبلاً وجود دارد")
+                print(f"Product '{persian}' already exists")
                 return False
             
             new_row = pd.DataFrame([{
@@ -264,11 +264,11 @@ class ProductNameManager:
             df.to_excel(self.excel_path, sheet_name='Products', index=False)
             self.product_dict[persian] = english
             
-            print(f"✅ محصول جدید اضافه شد: {persian} → {english}")
+            print(f"New product added: {persian} -> {english}")
             return True
             
         except Exception as e:
-            print(f"❌ خطا در افزودن محصول: {e}")
+            print(f"Error adding product: {e}")
             return False
     
     def validate_products_in_dataframe(self, df, product_column='نام_محصول'):
@@ -276,7 +276,7 @@ class ProductNameManager:
         unknown_products = set()
         
         if product_column not in df.columns:
-            print(f"⚠️ ستون '{product_column}' در DataFrame یافت نشد")
+            print(f"Column '{product_column}' not found in DataFrame")
             return list(unknown_products)
         
         for _, row in df.iterrows():
