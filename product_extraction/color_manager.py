@@ -103,10 +103,10 @@ class ColorManager:
         # بررسی وجود فایل
         if not ensure_exists(self.excel_path):
             if self.auto_create:
-                print(f" فایل {self.excel_path} وجود ندارد. در حال ساخت...")
+                print(f"File {self.excel_path} not found. Creating...")
                 self.create_default_excel()
             else:
-                print(f" فایل {self.excel_path} یافت نشد. استفاده از رنگ‌های پیش‌فرض...")
+                print(f"File {self.excel_path} not found. Using defaults...")
                 self.color_dict = DEFAULT_COLOR_TRANSLATION.copy()
                 return
         
@@ -122,11 +122,11 @@ class ColorManager:
                 if persian and english and persian != 'nan' and english != 'nan':
                     self.color_dict[persian] = english
             
-            print(f" {len(self.color_dict)} رنگ از {self.excel_path} بارگذاری شد")
+            print(f"ColorManager: Loaded {len(self.color_dict)} colors from {self.excel_path}")
             
         except Exception as e:
-            print(f" خطا در خواندن فایل Excel: {e}")
-            print(f"   استفاده از رنگ‌های پیش‌فرض...")
+            print(f"Error reading Excel file: {e}")
+            print(f"   Using defaults...")
             self.color_dict = DEFAULT_COLOR_TRANSLATION.copy()
     
     def create_default_excel(self):
@@ -158,11 +158,11 @@ class ColorManager:
                     cell.font = header_font
                     cell.alignment = header_alignment
             
-            print(f" فایل {self.excel_path} با {len(DEFAULT_COLOR_TRANSLATION)} رنگ ساخته شد")
+            print(f"Created {self.excel_path} with {len(DEFAULT_COLOR_TRANSLATION)} colors")
             self.color_dict = DEFAULT_COLOR_TRANSLATION.copy()
             
         except Exception as e:
-            print(f" خطا در ساخت فایل Excel: {e}")
+            print(f"Error creating Excel file: {e}")
             self.color_dict = DEFAULT_COLOR_TRANSLATION.copy()
     
     def translate_color(self, persian_color):
@@ -189,7 +189,7 @@ class ColorManager:
         # اگر پیدا نشد، به لیست missing اضافه کن
         if color not in self.missing_colors:
             self.missing_colors.append(color)
-            print(f" رنگ '{color}' در فایل رنگ‌ها یافت نشد")
+            print(f"Color '{color}' not found in color mapping")
         
         # Fallback: تبدیل ساده
         return self._simple_transliterate(color)
@@ -221,7 +221,7 @@ class ColorManager:
             
             # بررسی وجود رنگ
             if persian in df['Persian'].values:
-                print(f" رنگ '{persian}' قبلاً وجود دارد")
+                print(f"Color '{persian}' already exists")
                 return False
             
             # افزودن سطر جدید
@@ -238,11 +238,11 @@ class ColorManager:
             # به‌روزرسانی دیکشنری
             self.color_dict[persian] = english
             
-            print(f" رنگ جدید اضافه شد: {persian} -> {english}")
+            print(f"New color added: {persian} -> {english}")
             return True
             
         except Exception as e:
-            print(f" خطا در افزودن رنگ: {e}")
+            print(f"Error adding color: {e}")
             return False
     
     def validate_colors_in_dataframe(self, df, color_column='رنگ'):
@@ -259,7 +259,7 @@ class ColorManager:
         unknown_colors = set()
         
         if color_column not in df.columns:
-            print(f" ستون '{color_column}' در DataFrame یافت نشد")
+            print(f"Column '{color_column}' not found in DataFrame")
             return list(unknown_colors)
         
         for _, row in df.iterrows():
@@ -276,12 +276,12 @@ class ColorManager:
                     unknown_colors.add(color_normalized)
         
         if unknown_colors:
-            print(f"\n {len(unknown_colors)} رنگ ناشناخته یافت شد:")
+            print(f"\n{len(unknown_colors)} unknown colors found:")
             for color in sorted(unknown_colors):
                 print(f"   • {color}")
-            print(f"\n این رنگ‌ها را می‌توانید به فایل {self.excel_path} اضافه کنید")
+            print(f"\nYou can add these to {self.excel_path}")
         else:
-            print(f" همه رنگ‌ها شناخته شده‌اند")
+            print(f"All colors are recognized")
         
         return list(unknown_colors)
     
@@ -303,15 +303,15 @@ class ColorManager:
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write("="*70 + "\n")
-                f.write(" گزارش رنگ‌ها\n")
+                f.write("Color Report\n")
                 f.write("="*70 + "\n\n")
-                
-                f.write(f"تاریخ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"تعداد کل رنگ‌ها: {len(self.color_dict)}\n")
-                f.write(f"رنگ‌های ناشناخته: {len(self.missing_colors)}\n\n")
-                
+
+                f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Total colors: {len(self.color_dict)}\n")
+                f.write(f"Unknown colors: {len(self.missing_colors)}\n\n")
+
                 f.write("="*70 + "\n")
-                f.write("لیست رنگ‌ها:\n")
+                f.write("Color list:\n")
                 f.write("="*70 + "\n\n")
                 
                 for persian, english in sorted(self.color_dict.items()):
@@ -319,16 +319,16 @@ class ColorManager:
                 
                 if self.missing_colors:
                     f.write("\n" + "="*70 + "\n")
-                    f.write("رنگ‌های ناشناخته:\n")
+                    f.write("Unknown colors:\n")
                     f.write("="*70 + "\n\n")
                     for color in self.missing_colors:
                         f.write(f"• {color}\n")
             
-            print(f" گزارش در {output_path} ذخیره شد")
+            print(f"Report saved to {output_path}")
             return True
             
         except Exception as e:
-            print(f" خطا در ذخیره گزارش: {e}")
+            print(f"Error saving report: {e}")
             return False
 
 # ===========================
@@ -349,31 +349,26 @@ def get_color_manager(excel_path=None):
 
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print(" تست Color Manager")
+    print("Testing Color Manager")
     print("="*70)
-    
-    # ساخت ColorManager
+
     cm = ColorManager()
-    
-    # تست ترجمه
-    print("\n تست ترجمه:")
+
+    print("\nTranslation test:")
     test_colors = ['قرمز', 'آبی', 'سرمه‌ای', 'رنگ ناشناخته']
     for color in test_colors:
         result = cm.translate_color(color)
         print(f"   {color} -> {result}")
-    
-    # نمایش رنگ‌های ناشناخته
+
     if cm.get_missing_colors():
-        print(f"\n رنگ‌های ناشناخته: {cm.get_missing_colors()}")
-    
-    # تست افزودن رنگ جدید
-    print("\n تست افزودن رنگ جدید:")
+        print(f"\nUnknown colors: {cm.get_missing_colors()}")
+
+    print("\nAdd new color test:")
     cm.add_color('یشمی', 'jade', 'رنگ سبز یشمی')
-    
-    # خروجی گزارش
-    print("\n ذخیره گزارش:")
+
+    print("\nSave report:")
     cm.export_summary()
-    
+
     print("\n" + "="*70)
-    print(" تست کامل شد!")
+    print("Test completed!")
     print("="*70)
