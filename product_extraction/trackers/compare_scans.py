@@ -27,7 +27,12 @@ from common.excel_utils import (
     set_fill,
 )
 from common.file_registry import get_file
-from common.path_registry import LEGACY_APP_DIR, RUNTIME_REPORTS_DIR
+from common.path_registry import (
+    INTERMEDIATE_DIR,
+    LEGACY_APP_DIR,
+    RUNTIME_CACHE_DIR,
+    RUNTIME_REPORTS_DIR,
+)
 from common.file_utils import find_first_glob_match, find_latest_dated
 from common.price_utils import select_effective_price as _select_effective_price
 from common.color_utils import split_color_values as _split_color_values
@@ -584,31 +589,13 @@ def compare(scan_path, woo_path, output_path, links_path=None):
 # ─── اجرا ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
     reports_dir = str(RUNTIME_REPORTS_DIR)
     woo_dirs = [
-        os.path.normpath(
-            os.path.join(
-                script_dir,
-                "..",
-                "..",
-                "runtime",
-                "cache",
-                "import_builder",
-                "uploads",
-            )
-        ),
-        os.path.normpath(
-            os.path.join(script_dir, "..", "..", "import_builder", "uploads")
-        ),
-        os.path.normpath(os.path.join(script_dir, "..", "import_builder", "uploads")),
-        os.path.normpath(os.path.join(script_dir, "..", "uploads")),
+        str(RUNTIME_CACHE_DIR / "import_builder" / "uploads"),
     ]
-    # پوشه‌های احتمالی برای پیدا کردن extracted_products.xlsx (فایل لینک محصولات)
+    # extracted_products.xlsx (فایل لینک محصولات) در data/intermediate تولید می‌شود
     links_dirs = [
-        os.path.normpath(os.path.join(script_dir, "..")),  # یک پوشه بالاتر از اسکریپت
-        script_dir,
+        str(INTERMEDIATE_DIR),
         reports_dir,
     ]
 
