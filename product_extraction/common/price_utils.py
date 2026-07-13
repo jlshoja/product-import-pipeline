@@ -110,16 +110,20 @@ def calculate_price_change(old_price, new_price):
 
 
 def select_effective_price(regular_price, sale_price):
-    """Return the sale price when present, otherwise the regular price."""
+    """Return the sale price when it is a real (positive) sale, otherwise the
+    regular price. A value of 0 / 0.0 is treated as 'no sale', not a free item,
+    because WooCommerce exports emit sale_price=0 for non-sale products."""
     for value in (sale_price, regular_price):
         if value is None:
             continue
         text = str(value).strip()
         if text and text.lower() not in {"nan", "none"}:
             try:
-                return int(float(text))
+                parsed = int(float(text))
             except ValueError:
                 continue
+            if parsed > 0:
+                return parsed
     return None
 
 
