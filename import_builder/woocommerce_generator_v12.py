@@ -467,6 +467,36 @@ def process_products_v12(input_file, process_images=False, source_images_folder=
     os.makedirs(output_folder, exist_ok=True)
     output_csv = os.path.join(output_folder, f"woocommerce_import_{timestamp}.csv")
     df_output.to_csv(output_csv, index=False, encoding='utf-8-sig')
+
+    # If manifests are provided, split into new vs updated CSVs using SKU
+    new_manifest = os.environ.get('NEW_MANIFEST')
+    updated_manifest = os.environ.get('UPDATED_MANIFEST')
+    try:
+        if new_manifest or updated_manifest:
+            # Normalize sku column in df_output
+            if 'sku' not in df_output.columns:
+                if 'SKU' in df_output.columns:
+                    df_output['sku'] = df_output['SKU']
+
+            if new_manifest and os.path.exists(new_manifest):
+                df_new_list = pd.read_csv(new_manifest, encoding='utf-8-sig')
+                new_skus = set(map(str, df_new_list['sku'].astype(str))) if 'sku' in df_new_list.columns else set()
+                if new_skus:
+                    df_new_out = df_output[df_output['sku'].astype(str).isin(new_skus)]
+                    new_csv = os.path.join(output_folder, f"woocommerce_new_{timestamp}.csv")
+                    df_new_out.to_csv(new_csv, index=False, encoding='utf-8-sig')
+                    print(f"✅ New products CSV: {new_csv}  ({len(df_new_out)} rows)")
+
+            if updated_manifest and os.path.exists(updated_manifest):
+                df_updated_list = pd.read_csv(updated_manifest, encoding='utf-8-sig')
+                updated_skus = set(map(str, df_updated_list['sku'].astype(str))) if 'sku' in df_updated_list.columns else set()
+                if updated_skus:
+                    df_update_out = df_output[df_output['sku'].astype(str).isin(updated_skus)]
+                    update_csv = os.path.join(output_folder, f"woocommerce_update_{timestamp}.csv")
+                    df_update_out.to_csv(update_csv, index=False, encoding='utf-8-sig')
+                    print(f"✅ Update products CSV: {update_csv}  ({len(df_update_out)} rows)")
+    except Exception as e:
+        print(f"⚠️  Could not split CSVs by manifests: {e}")
     
     print("\n" + "="*70)
     print(f"✅ CSV created: {output_csv}")

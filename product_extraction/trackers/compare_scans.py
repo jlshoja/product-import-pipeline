@@ -574,6 +574,78 @@ def compare(scan_path, woo_path, output_path, links_path=None):
     write_sheet_colors(wb, color_changes)
 
     wb.save(output_path)
+    # ── Write manifests (new / updated) into the same reports folder
+    try:
+        out_dir = Path(output_path).parent
+        # New products manifest
+        new_manifest = out_dir / "new_products_list.csv"
+        try:
+            # new_products is a DataFrame
+            cols = ['sku']
+            if 'نام_محصول' in new_products.columns:
+                cols.append('name')
+            if 'قیمت_اصلی' in new_products.columns:
+                cols.append('price')
+            # try to find url column
+            url_col = None
+            for c in ['Product URL', 'Product_URL', 'url', 'ProductURL']:
+                if c in new_products.columns:
+                    url_col = c
+                    break
+            if url_col:
+                cols.append('url')
+
+            df_new_man = pd.DataFrame()
+            df_new_man['sku'] = new_products['sku'] if 'sku' in new_products.columns else new_products['SKU'] if 'SKU' in new_products.columns else new_products['sku']
+            if 'نام_محصول' in new_products.columns:
+                df_new_man['name'] = new_products['نام_محصول']
+            if 'قیمت_اصلی' in new_products.columns:
+                df_new_man['price'] = new_products['قیمت_اصلی']
+            if url_col:
+                df_new_man['url'] = new_products[url_col]
+
+            df_new_man.to_csv(new_manifest, index=False, encoding='utf-8-sig')
+        except Exception:
+            # fallback: if no dataframe structure, try minimal new list
+            pass
+
+        # Updated products manifest (price + color changes)
+        updated_manifest = out_dir / "updated_products_list.csv"
+        updated_rows = []
+        for row in price_changes:
+            try:
+                sku = row[0]
+                name = row[1]
+                before = row[2]
+                after = row[3]
+                updated_rows.append({
+                    'sku': sku,
+                    'name': name,
+                    'change_type': 'price',
+                    'details': f"{before} -> {after}"
+                })
+            except Exception:
+                continue
+        for row in color_changes:
+            try:
+                sku = row[0]
+                name = row[1]
+                added = row[4]
+                removed = row[5]
+                details = f"added: {added}; removed: {removed}"
+                updated_rows.append({
+                    'sku': sku,
+                    'name': name,
+                    'change_type': 'color',
+                    'details': details
+                })
+            except Exception:
+                continue
+
+        if updated_rows:
+            pd.DataFrame(updated_rows).to_csv(updated_manifest, index=False, encoding='utf-8-sig')
+    except Exception:
+        pass
     print(f"✓ Output saved:      {output_path}")
     print(f"✓ SKUs to delete:    {txt_path}")
     print(f"  New products:      {len(new_products)}")

@@ -587,7 +587,26 @@ class AdvancedImageDownloader:
 
     def process_urls(self):
         """Full processing of all URLs"""
-        df = pd.read_excel(self.excel_path)
+        # Support optional manifest to process only new products
+        manifest_path = os.environ.get('IMG_MANIFEST')
+        if manifest_path:
+            try:
+                df_manifest = pd.read_csv(manifest_path, encoding='utf-8-sig')
+                # Expect columns: sku, url, name (url preferred)
+                if 'url' in df_manifest.columns:
+                    urls = df_manifest['url'].tolist()
+                elif 'Product URL' in df_manifest.columns:
+                    urls = df_manifest['Product URL'].tolist()
+                else:
+                    urls = []
+                # Build a minimal dataframe for compatibility
+                df = pd.DataFrame({'Product URL': urls})
+                self.logger.info(f"[MANIFEST] Processing {len(df)} products from manifest: {manifest_path}")
+            except Exception as e:
+                self.logger.error(f"[MANIFEST] Could not read manifest {manifest_path}: {e}")
+                df = pd.read_excel(self.excel_path)
+        else:
+            df = pd.read_excel(self.excel_path)
         self._build_sku_map(df)
         self._ensure_columns(df)
 

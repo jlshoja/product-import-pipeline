@@ -1137,6 +1137,49 @@ def main():
     # ✨ Generate HTML Report in reports folder
     html_file = generate_html_report(current_df, new_products, price_changes, removed_products, previous_df, reports_dir)
     
+    # ── Write manifests for image processing / import builder
+    try:
+        manifest_new = reports_dir / 'new_products_list.csv'
+        manifest_updated = reports_dir / 'updated_products_list.csv'
+
+        # new_products is a list of dicts when previous_df is None, else list from compare_data
+        if new_products:
+            df_new = pd.DataFrame(new_products)
+            # Ensure sku/url/name columns exist
+            cols = {}
+            if 'کد محصول' in df_new.columns:
+                cols['sku'] = df_new['کد محصول']
+            elif 'sku' in df_new.columns:
+                cols['sku'] = df_new['sku']
+            if 'نام محصول' in df_new.columns:
+                cols['name'] = df_new['نام محصول']
+            if 'لینک محصول' in df_new.columns:
+                cols['url'] = df_new['لینک محصول']
+            if cols:
+                pd.DataFrame(cols).to_csv(manifest_new, index=False, encoding='utf-8-sig')
+
+        updated_rows = []
+        for change in price_changes:
+            updated_rows.append({
+                'sku': change.get('کد محصول', change.get('sku', '')),
+                'name': change.get('نام محصول', ''),
+                'change_type': 'price',
+                'details': f"{change.get('قیمت قبلی')} -> {change.get('قیمت جدید')}"
+            })
+
+        for rem in removed_products:
+            updated_rows.append({
+                'sku': rem.get('کد محصول', ''),
+                'name': rem.get('نام محصول', ''),
+                'change_type': 'removed',
+                'details': ''
+            })
+
+        if updated_rows:
+            pd.DataFrame(updated_rows).to_csv(manifest_updated, index=False, encoding='utf-8-sig')
+    except Exception:
+        pass
+    
     # Summary
     print(f"\n{'='*80}")
     print("SUMMARY:")
