@@ -100,6 +100,13 @@ def process(df, pricing_data, extra_discount_percent=0):
 
         total_discount = price_range['discount_percent'] + extra_discount_percent
 
+        if total_discount >= 100:
+            # A discount of 100%+ would divide by zero or produce a negative
+            # display price. Clamp and warn rather than shipping a bad price.
+            print(f"[step_pricing] WARNING: total_discount={total_discount} >= 100 "
+                  f"at row {idx}; clamping to 99 to avoid invalid price.")
+            total_discount = 99
+
         if total_discount > 0:
             final_sale_price = new_price
             display_price = final_sale_price / (1 - total_discount / 100)
