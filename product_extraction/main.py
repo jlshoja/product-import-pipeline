@@ -311,12 +311,21 @@ class ProductScraperApp:
         existing = read_state()
         resume = False
         if existing and existing.get('status') != 'complete':
-            # ask one-time confirmation
-            try:
-                ans = input("A previous pipeline run appears incomplete. Resume remaining steps? (y/N): ").strip().lower()
-                resume = ans in ('y', 'yes')
-            except Exception:
-                resume = False
+            # AUTO_RESUME env flag allows skipping the prompt
+            auto_resume_env = os.getenv('AUTO_RESUME')
+            if auto_resume_env is not None:
+                resume = str(auto_resume_env).strip().lower() in ('1', 'true', 'yes')
+                if resume:
+                    self.logger.info('AUTO_RESUME enabled: resuming previous pipeline run')
+                else:
+                    self.logger.info('AUTO_RESUME set to false: starting fresh')
+            else:
+                # ask one-time confirmation
+                try:
+                    ans = input("A previous pipeline run appears incomplete. Resume remaining steps? (y/N): ").strip().lower()
+                    resume = ans in ('y', 'yes')
+                except Exception:
+                    resume = False
 
         # If not resuming, start a fresh state
         if not resume:
