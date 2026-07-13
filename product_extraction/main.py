@@ -8,6 +8,7 @@ import sys
 import os
 from pathlib import Path
 import argparse
+import signal
 
 #    
 from common.path_registry import ROOT_DIR
@@ -216,13 +217,32 @@ class ProductScraperApp:
             download_env["IMG_RESUME"]   = "fresh"
 
         self.logger.info("[IMG] Step 1/2 - Downloading images (full, fresh)...")
-        result = subprocess.run(
-            [sys.executable, "Image_Downloader.py"],
-            cwd=str(image_dir),
-            env=download_env,
-        )
-        if result.returncode != 0:
-            self.logger.error("Image download failed")
+        # run with timeout and retry
+        timeout_sec = int(os.environ.get('PROCESS_TIMEOUT', '900'))
+        retry_count = int(os.environ.get('PROCESS_SUBPROCESS_RETRY', '1'))
+        attempt = 0
+        download_ok = False
+        while attempt <= retry_count and not download_ok:
+            try:
+                attempt += 1
+                self.logger.info(f"[IMG] download attempt {attempt}/{retry_count + 1}")
+                result = subprocess.run(
+                    [sys.executable, "Image_Downloader.py"],
+                    cwd=str(image_dir),
+                    env=download_env,
+                    timeout=timeout_sec,
+                )
+                if result.returncode == 0:
+                    download_ok = True
+                else:
+                    self.logger.error(f"Image download failed with returncode {result.returncode}")
+            except subprocess.TimeoutExpired:
+                self.logger.error(f"Image download subprocess timed out after {timeout_sec}s (attempt {attempt})")
+            except Exception as e:
+                self.logger.error(f"Image download subprocess error: {e}")
+
+        if not download_ok:
+            self.logger.error("Image download ultimately failed")
             return False
 
         # --- Sub-step 2: process and compress images ---
@@ -235,9 +255,25 @@ class ProductScraperApp:
         ]
 
         self.logger.info("[IMG] Step 2/2 - Processing and compressing images...")
-        result = subprocess.run(process_cmd, cwd=str(image_dir))
-        if result.returncode != 0:
-            self.logger.error("Image processing failed")
+        # processing step also gets a timeout and retry
+        proc_ok = False
+        attempt = 0
+        while attempt <= retry_count and not proc_ok:
+            try:
+                attempt += 1
+                self.logger.info(f"[IMG] processing attempt {attempt}/{retry_count + 1}")
+                result = subprocess.run(process_cmd, cwd=str(image_dir), timeout=timeout_sec)
+                if result.returncode == 0:
+                    proc_ok = True
+                else:
+                    self.logger.error(f"Image processing failed with returncode {result.returncode}")
+            except subprocess.TimeoutExpired:
+                self.logger.error(f"Image processing subprocess timed out after {timeout_sec}s (attempt {attempt})")
+            except Exception as e:
+                self.logger.error(f"Image processing subprocess error: {e}")
+
+        if not proc_ok:
+            self.logger.error("Image processing ultimately failed")
             return False
 
         self.logger.info(" Image Processing completed successfully")

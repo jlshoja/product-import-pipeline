@@ -60,6 +60,27 @@ class AdvancedImageDownloader:
 
         if use_selenium:
             self.setup_selenium()
+        # Register signal handlers to save state on termination
+        try:
+            import signal
+            def _handle_exit(sig, frame):
+                try:
+                    self.logger.info('[SIG] Saving downloader state before exit')
+                    self._save_state_to_targets()
+                except Exception:
+                    pass
+                try:
+                    if self.driver:
+                        self.driver.quit()
+                except Exception:
+                    pass
+                self.logger.info('[SIG] Exiting')
+                sys.exit(1)
+
+            signal.signal(signal.SIGINT, _handle_exit)
+            signal.signal(signal.SIGTERM, _handle_exit)
+        except Exception:
+            pass
 
     def load_state_early(self):
         candidate = Path(self.state_file)

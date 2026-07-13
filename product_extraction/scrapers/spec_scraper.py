@@ -29,6 +29,29 @@ from common.path_registry import ARCHIVES_DIR, INPUTS_DIR, OUTPUTS_DIR, INTERMED
 
 PROGRESS_FILE = str(ROOT_DIR / "runtime" / "state" / get_file('scraper_progress'))
 
+# Module-level progress trackers for graceful shutdown
+CURRENT_PROGRESS_INDEX = 0
+TOTAL_PRODUCTS = 0
+
+import signal
+
+def _spec_handle_exit(sig, frame):
+    try:
+        print('\n[SIG] Received termination signal — saving progress...')
+        sys.stdout.flush()
+        # Save current progress
+        try:
+            save_progress(CURRENT_PROGRESS_INDEX, TOTAL_PRODUCTS)
+        except Exception:
+            pass
+    finally:
+        print('[SIG] Exiting now')
+        sys.stdout.flush()
+        sys.exit(1)
+
+signal.signal(signal.SIGINT, _spec_handle_exit)
+signal.signal(signal.SIGTERM, _spec_handle_exit)
+
 # ✅ Import ColorManager for final standardization
 try:
     from color_manager import ColorManager
@@ -1443,6 +1466,12 @@ def main():
         # Process products
         for idx, url in enumerate(product_urls):
             i = product_numbers[idx]
+            # update module-level progress
+            try:
+                CURRENT_PROGRESS_INDEX = i
+                TOTAL_PRODUCTS = len(product_urls)
+            except Exception:
+                pass
             
             if not retry_failed_only and i in completed_numbers:
                 print(f"[SKIP] Product #{i} already processed (وضعیت: OK/OUT_OF_STOCK)")
