@@ -1,9 +1,9 @@
 # Product Import Pipeline
 
 ## Current Status
-Migration Preparation Phase
+Migration Complete
 
-Phase 0 (Migration Readiness) is complete. A validated baseline dataset exists and the repository is ready for controlled migration planning.
+All 8 shared-utility migration units have landed (see docs/MIGRATION_STATUS.md). A validated baseline dataset exists and the migration is finished.
 
 ## Modules
 1. product_extraction
