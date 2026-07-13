@@ -11,8 +11,8 @@ row when done.
 |------|-------|----------|--------|------------|--------|
 | 001  | Establish a golden-file verification baseline | P1 | M | — | DONE (worktree agent-a77a4d8, commit 54b5e09; not merged) |
 | 002  | Harden the two Flask web panels | P1 | M | — | TODO |
-| 003  | Fix price bugs + add price characterization tests | P1 | M | 001 (recommended) | TODO |
-| 004  | Delete dead code and reconcile doc drift | P2 | S | — | TODO |
+| 003  | Fix price bugs + add price characterization tests | P1 | M | 001 (recommended) | DONE (worktree agent-a026519e, commits 79328ec/6b4e8c4/b55de7a; not merged) |
+| 004  | Delete dead code and reconcile doc drift | P2 | S | — | DONE (worktree agent-a93ad1de, commits 584183a/65476cb; not merged) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
