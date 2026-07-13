@@ -1156,7 +1156,30 @@ def main():
             if 'لینک محصول' in df_new.columns:
                 cols['url'] = df_new['لینک محصول']
             if cols:
-                pd.DataFrame(cols).to_csv(manifest_new, index=False, encoding='utf-8-sig')
+                df_out = pd.DataFrame(cols)
+                # Attempt to enrich with image_urls by looking up latest product_details in reports
+                try:
+                    # find a product_details_{timestamp}.xlsx in reports dated folders
+                    pd_map = {}
+                    for sub in Path(RUNTIME_REPORTS_DIR).iterdir():
+                        if not sub.is_dir():
+                            continue
+                        for f in sub.glob('product_details_*.xlsx'):
+                            try:
+                                df_details = read_excel(str(f), dtype=str)
+                                if 'sku' in df_details.columns and 'image_urls' in df_details.columns:
+                                    for _, r in df_details.iterrows():
+                                        key = str(r.get('sku', ''))
+                                        if key:
+                                            pd_map[key] = r.get('image_urls', '')
+                            except Exception:
+                                continue
+                    if 'sku' in df_out.columns:
+                        df_out['image_urls'] = df_out['sku'].map(pd_map).fillna('')
+                except Exception:
+                    pass
+
+                df_out.to_csv(manifest_new, index=False, encoding='utf-8-sig')
 
         updated_rows = []
         for change in price_changes:

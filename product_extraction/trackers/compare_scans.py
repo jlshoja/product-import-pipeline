@@ -596,13 +596,26 @@ def compare(scan_path, woo_path, output_path, links_path=None):
                 cols.append('url')
 
             df_new_man = pd.DataFrame()
-            df_new_man['sku'] = new_products['sku'] if 'sku' in new_products.columns else new_products['SKU'] if 'SKU' in new_products.columns else new_products['sku']
+            sku_col = 'sku' if 'sku' in new_products.columns else ('SKU' if 'SKU' in new_products.columns else None)
+            if sku_col:
+                df_new_man['sku'] = new_products[sku_col].astype(str)
             if 'نام_محصول' in new_products.columns:
                 df_new_man['name'] = new_products['نام_محصول']
             if 'قیمت_اصلی' in new_products.columns:
                 df_new_man['price'] = new_products['قیمت_اصلی']
             if url_col:
                 df_new_man['url'] = new_products[url_col]
+
+            # Enrich with image URLs if scan file provided and has image_urls
+            if 'df_scan' in locals() and not df_scan.empty:
+                scan_img_map = {}
+                if 'sku' in df_scan.columns and 'image_urls' in df_scan.columns:
+                    for _, r in df_scan.iterrows():
+                        key = str(r.get('sku', ''))
+                        if key:
+                            scan_img_map[key] = r.get('image_urls', '')
+                if not df_new_man.empty and 'sku' in df_new_man.columns:
+                    df_new_man['image_urls'] = df_new_man['sku'].map(scan_img_map).fillna('')
 
             df_new_man.to_csv(new_manifest, index=False, encoding='utf-8-sig')
         except Exception:
