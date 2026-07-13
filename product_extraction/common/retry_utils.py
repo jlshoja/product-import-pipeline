@@ -22,6 +22,8 @@ Design notes:
 import logging
 import random
 import time
+import os
+import socket
 
 logger = logging.getLogger("common.retry")
 
@@ -63,6 +65,40 @@ PERMANENT_ERROR_NAMES = (
 # HTTP status codes considered transient when carried on an exception/response.
 TRANSIENT_HTTP_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
+# Environment-configurable defaults
+MAX_ATTEMPTS_DEFAULT = int(os.getenv('RETRY_MAX_ATTEMPTS', '4'))
+BASE_DELAY_DEFAULT = float(os.getenv('RETRY_BASE_DELAY', '2.0'))
+CAP_DELAY_DEFAULT = float(os.getenv('RETRY_CAP', '60.0'))
+JITTER_DEFAULT = float(os.getenv('RETRY_JITTER', '0.3'))
+
+
+# Optional class-based exception mapping for higher fidelity. Import libraries
+# only if available; fallback to name-based matching otherwise.
+TRANSIENT_EXCEPTION_CLASSES = set()
+PERMANENT_EXCEPTION_CLASSES = set()
+try:
+    import requests
+    TRANSIENT_EXCEPTION_CLASSES.add(requests.exceptions.ConnectionError)
+    TRANSIENT_EXCEPTION_CLASSES.add(requests.exceptions.Timeout)
+    PERMANENT_EXCEPTION_CLASSES.add(requests.exceptions.InvalidURL)
+except Exception:
+    pass
+try:
+    import urllib3
+    TRANSIENT_EXCEPTION_CLASSES.add(urllib3.exceptions.ProtocolError)
+    TRANSIENT_EXCEPTION_CLASSES.add(urllib3.exceptions.ReadTimeoutError)
+except Exception:
+    pass
+try:
+    from selenium.common.exceptions import WebDriverException, NoSuchElementException, InvalidSelectorException
+    TRANSIENT_EXCEPTION_CLASSES.add(WebDriverException)
+    PERMANENT_EXCEPTION_CLASSES.add(NoSuchElementException)
+    PERMANENT_EXCEPTION_CLASSES.add(InvalidSelectorException)
+except Exception:
+    pass
+# socket timeouts are transient
+TRANSIENT_EXCEPTION_CLASSES.add(socket.timeout)
+
 
 def _status_code_of(exc):
     """Best-effort extraction of an HTTP status code from an exception."""
@@ -86,6 +122,16 @@ def is_transient_error(exc):
     3. Exception type name matched against the transient list -> transient.
     4. Unknown -> transient (the attempt cap is the safety net).
     """
+    # First, class-based checks (high fidelity if libraries available)
+    try:
+        if any(isinstance(exc, cls) for cls in PERMANENT_EXCEPTION_CLASSES):
+            return False
+        if any(isinstance(exc, cls) for cls in TRANSIENT_EXCEPTION_CLASSES):
+            return True
+    except Exception:
+        # Fall back to name-based classification
+        pass
+
     status = _status_code_of(exc)
     if status is not None:
         if status in TRANSIENT_HTTP_STATUS:
@@ -149,6 +195,18 @@ def retry_call(func, *args, max_attempts=4, base_delay=2.0, cap=60.0,
         error is classified as permanent.
     """
     last_exc = None
+    # Use env/config defaults if caller didn't override
+    if max_attempts is None:
+        max_attempts = MAX_ATTEMPTS_DEFAULT
+    if base_delay is None:
+        base_delay = BASE_DELAY_DEFAULT
+    if cap is None:
+        cap = CAP_DELAY_DEFAULT
+    if 'jitter' in kwargs:
+        jitter = kwargs.pop('jitter')
+    else:
+        jitter = JITTER_DEFAULT
+
     for attempt in range(1, max_attempts + 1):
         try:
             return func(*args, **kwargs)
@@ -170,7 +228,7 @@ def retry_call(func, *args, max_attempts=4, base_delay=2.0, cap=60.0,
                 )
                 raise
 
-            delay = backoff_delay(attempt, base=base_delay, cap=cap)
+            delay = backoff_delay(attempt, base=base_delay, cap=cap, jitter=jitter)
             logger.warning(
                 f"[retry] {label}: attempt {attempt}/{max_attempts} failed "
                 f"({type(exc).__name__}: {str(exc)[:100]}) — retrying in {delay:.1f}s"
