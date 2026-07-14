@@ -104,6 +104,12 @@ def find_latest_dated(base_dir, pattern, date_formats, recursive=False):
     return dated[-1][1]
 
 
+def file_exists_and_non_empty(path) -> bool:
+    """Check if a file exists and is non-empty."""
+    file_path = Path(path)
+    return file_path.exists() and file_path.is_file() and file_path.stat().st_size > 0
+
+
 def find_first_glob_match(base_dir, pattern, recursive=False):
     """Return the first file matching a glob pattern, or None if not found."""
     base_path = Path(base_dir)

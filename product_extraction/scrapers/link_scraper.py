@@ -335,7 +335,13 @@ def print_failure_summary(total_ok: int):
     print("=" * 60)
 
     if not _error_records:
-        print("  ✓ No failures — all products extracted successfully.")
+        if failed_urls:
+            print(f"  ✗ {len(failed_urls)} URL(s) failed to extract products.")
+        else:
+            print("  ✓ No failures — all products extracted successfully.")
+        
+        if total_products == 0:
+            print("  ⚠ WARNING: No products were extracted from any URL.")
         return
 
     by_type: dict = {}

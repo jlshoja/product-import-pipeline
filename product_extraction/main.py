@@ -68,9 +68,23 @@ class ProductScraperApp:
         
         try:
             import scrapers.link_scraper as link_scraper_module
+            from common.file_utils import file_exists_and_non_empty
             
             # Run the scraper
             link_scraper_module.main()
+            
+            # Validate output
+            output_file = get_file('extracted_links')
+            if not file_exists_and_non_empty(output_file):
+                self.logger.error(f"Link Scraper produced no output: {output_file}")
+                return False
+            
+            # Read the output file to check if any products were extracted
+            import pandas as pd
+            df = pd.read_excel(output_file)
+            if df.empty or len(df) == 0:
+                self.logger.error("Link Scraper extracted zero products")
+                return False
             
             self.logger.info(" Link Scraper completed successfully")
             return True
@@ -88,9 +102,22 @@ class ProductScraperApp:
 
         try:
             import scrapers.spec_scraper as spec_scraper_module
+            from common.file_utils import file_exists_and_non_empty
+
+            # Validate input: extracted_links is REQUIRED
+            links_file = get_file('extracted_links')
+            if not file_exists_and_non_empty(links_file):
+                self.logger.error(f"Spec Scraper cannot run: missing input file {links_file}")
+                return False
 
             # Run the scraper
             spec_scraper_module.main()
+
+            # Validate output
+            output_file = get_file('extracted_products')
+            if not file_exists_and_non_empty(output_file):
+                self.logger.error(f"Spec Scraper produced no output: {output_file}")
+                return False
 
             self.logger.info(" Spec Scraper completed successfully")
             return True
@@ -108,6 +135,13 @@ class ProductScraperApp:
 
         try:
             import standardizer
+            from common.file_utils import file_exists_and_non_empty
+
+            # Validate input
+            input_file = get_file('extracted_products')
+            if not file_exists_and_non_empty(input_file):
+                self.logger.error(f"Standardizer missing input: {input_file}")
+                return False
 
             result = standardizer.main()
 
@@ -334,6 +368,7 @@ class ProductScraperApp:
             self.logger.info('Resuming previous pipeline run based on pipeline_state.json')
 
         results = {}
+        max_retries = 1  # Retry each step once
         for step_name, step_func in steps:
             self.logger.info(f"\n{'='*70}")
             self.logger.info(f"  {step_name}")
@@ -347,31 +382,43 @@ class ProductScraperApp:
                     results[step_name] = True
                     continue
 
-            try:
-                result = step_func()
+            retry_count = 0
+            result = False
+            while retry_count <= max_retries:
+                try:
+                    result = step_func()
 
-                # Standardizer returns a dict with unresolved counts
-                if step_name == "Standardizer" and isinstance(result, dict):
-                    unresolved_colors = result.get('unresolved_colors', [])
-                    unresolved_names = result.get('unresolved_names', [])
+                    # Standardizer returns a dict with unresolved counts
+                    if step_name == "Standardizer" and isinstance(result, dict):
+                        unresolved_colors = result.get('unresolved_colors', [])
+                        unresolved_names = result.get('unresolved_names', [])
 
-                # update pipeline state for this step
-                update_step(step_name, 'done' if result else 'failed')
+                    # update pipeline state for this step
+                    update_step(step_name, 'done' if result else 'failed')
 
-                results[step_name] = bool(result)
+                    if result:
+                        self.logger.info(f" {step_name} succeeded")
+                        break  # Exit retry loop on success
+                    else:
+                        retry_count += 1
+                        if retry_count <= max_retries:
+                            self.logger.warning(f" {step_name} failed - retry {retry_count}/{max_retries}")
+                        else:
+                            self.logger.error(f" {step_name} failed after {max_retries} retries - aborting pipeline")
+                            break
+                except Exception as e:
+                    update_step(step_name, 'failed', {'error': str(e)})
+                    self.logger.error(f" Error in {step_name}: {e}", exc_info=True)
+                    retry_count += 1
+                    if retry_count <= max_retries:
+                        self.logger.warning(f" Retrying {step_name} ({retry_count}/{max_retries})...")
+                    else:
+                        results[step_name] = False
+                        break
 
-                if result:
-                    self.logger.info(f" {step_name} succeeded")
-                else:
-                    self.logger.warning(f"  {step_name} failed")
-                    # Stop the chain: a failed step means downstream input is missing
-                    self.logger.error(f" Aborting automatic pipeline at: {step_name}")
-                    break
-            except Exception as e:
-                update_step(step_name, 'failed', {'error': str(e)})
-                self.logger.error(f" Error in {step_name}: {e}", exc_info=True)
-                results[step_name] = False
-                break
+            results[step_name] = bool(result)
+            if not result:
+                break  # Stop the pipeline if the step ultimately fails
 
         # Display summary
         self.logger.info("\n" + "="*70)
