@@ -1,79 +1,35 @@
 @echo off
-setlocal EnableExtensions
+REM run.bat - wrapper to run the automatic pipeline with safe defaults
+REM Usage: run.bat [timeout_seconds] [subprocess_retries] [no-resume]
 
-chcp 65001 >nul
-title Product Import Pipeline - Execution Mode
-color 0B
+SETLOCAL
 
-set "ROOT_DIR=%~dp0"
-cd /d "%ROOT_DIR%"
+IF "%~1"=="" (
+  SET TIMEOUT=3600
+) ELSE (
+  SET TIMEOUT=%~1
+)
 
-:MENU
-cls
-echo.
-echo ============================================================================
-echo                  Product Import Pipeline - Execution Mode
-echo ============================================================================
-echo.
-echo   Choose how you want to run the pipeline:
-echo.
-echo   [1] Step-by-Step Mode   (open the interactive menu, run stages manually)
-echo   [2] Automatic Mode      (run the whole pipeline from start to finish)
-echo   [0] Exit
-echo.
-echo ============================================================================
-echo.
-set /p "choice=Select an option (0-2): "
+IF "%~2"=="" (
+  SET RETRIES=1
+) ELSE (
+  SET RETRIES=%~2
+)
 
-if "%choice%"=="1" goto STEP_BY_STEP
-if "%choice%"=="2" goto AUTOMATIC
-if "%choice%"=="0" goto EXIT
+IF /I "%~3"=="no-resume" (
+  SET AUTO_RESUME=
+  ECHO AUTO_RESUME disabled (will prompt if previous run incomplete)
+) ELSE (
+  SET AUTO_RESUME=1
+  ECHO AUTO_RESUME=1 (will resume previous incomplete runs)
+)
 
-echo.
-echo Invalid choice. Please select 0, 1 or 2.
-timeout /t 2 >nul
-goto MENU
+SET PROCESS_TIMEOUT=%TIMEOUT%
+SET PROCESS_SUBPROCESS_RETRY=%RETRIES%
 
-:STEP_BY_STEP
-cls
-echo.
-echo ============================================================================
-echo Launching Step-by-Step Mode...
-echo ============================================================================
-echo.
-call "%ROOT_DIR%run_pipeline.bat"
-goto EXIT
+ECHO PROCESS_TIMEOUT=%PROCESS_TIMEOUT%
+ECHO PROCESS_SUBPROCESS_RETRY=%PROCESS_SUBPROCESS_RETRY%
 
-:AUTOMATIC
-cls
-echo.
-echo ============================================================================
-echo Running Automatic Mode - Full Pipeline (no prompts)
-echo ============================================================================
-echo.
-echo This runs, from start to finish:
-echo   1. Scrape Product Links
-echo   2. Scrape Product Specifications (fresh) + Standardize
-echo   3. Download and Process Images
-echo   4. Build Import Files (WooCommerce CSV)
-echo.
-pushd product_extraction
-python main.py auto
-popd
-echo.
-echo ============================================================================
-echo Automatic pipeline finished. Press any key to exit...
-echo ============================================================================
-pause >nul
-goto EXIT
+python product_extraction\main.py auto
 
-:EXIT
-cls
-echo.
-echo ============================================================================
-echo Exiting Product Import Pipeline
-echo ============================================================================
-echo.
-timeout /t 2 >nul
-endlocal
-exit /b 0
+ENDLOCAL
