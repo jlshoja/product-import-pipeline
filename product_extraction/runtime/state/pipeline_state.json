@@ -1,0 +1,14 @@
+{
+  "run_id": "20260714_034104",
+  "start_time": "2026-07-14T00:11:04.909222",
+  "steps": {
+    "Link Scraper": {
+      "status": "done",
+      "info": {},
+      "ts": "2026-07-14T00:14:28.683431"
+    }
+  },
+  "last_step": "Link Scraper",
+  "status": "running",
+  "updated_at": "2026-07-14T00:14:28.683460"
+}

@@ -10,6 +10,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
+from urllib.parse import urljoin
 
 import time
 import re
@@ -27,6 +28,29 @@ from common.price_utils import clean_price_text as _clean_price_text
 from common.path_registry import ARCHIVES_DIR, INPUTS_DIR, OUTPUTS_DIR, INTERMEDIATE_DIR, ROOT_DIR, RUNTIME_REPORTS_DIR, resolve_existing_path
 
 PROGRESS_FILE = str(ROOT_DIR / "runtime" / "state" / get_file('scraper_progress'))
+
+# Module-level progress trackers for graceful shutdown
+CURRENT_PROGRESS_INDEX = 0
+TOTAL_PRODUCTS = 0
+
+import signal
+
+def _spec_handle_exit(sig, frame):
+    try:
+        print('\n[SIG] Received termination signal — saving progress...')
+        sys.stdout.flush()
+        # Save current progress
+        try:
+            save_progress(CURRENT_PROGRESS_INDEX, TOTAL_PRODUCTS)
+        except Exception:
+            pass
+    finally:
+        print('[SIG] Exiting now')
+        sys.stdout.flush()
+        sys.exit(1)
+
+signal.signal(signal.SIGINT, _spec_handle_exit)
+signal.signal(signal.SIGTERM, _spec_handle_exit)
 
 # ✅ Import ColorManager for final standardization
 try:
@@ -698,6 +722,36 @@ def extract_product_details(driver, product_url, color_parser):
                 except:
                     continue
             product_data['تعداد_عکس_گالری'] = max_count if max_count > 0 else ''
+            # Also collect image URLs from the gallery selectors (prioritise large images)
+            image_urls = []
+            try:
+                for selector in gallery_selectors:
+                    try:
+                        elems = driver.find_elements(By.CSS_SELECTOR, selector)
+                        for el in elems:
+                            img_url = ''
+                            try:
+                                img_url = el.get_attribute('data-large_image') or el.get_attribute('data-src') or el.get_attribute('data-lazy-src') or el.get_attribute('src')
+                            except:
+                                try:
+                                    img = el.find_element(By.TAG_NAME, 'img')
+                                    img_url = img.get_attribute('data-large_image') or img.get_attribute('data-src') or img.get_attribute('src')
+                                except:
+                                    img_url = ''
+                            if img_url:
+                                full = urljoin(product_url, img_url)
+                                if full not in image_urls:
+                                    image_urls.append(full)
+                    except:
+                        continue
+            except Exception:
+                image_urls = []
+
+            if image_urls:
+                # Limit to first 12 images to avoid huge manifests
+                product_data['image_urls'] = '|'.join(image_urls[:12])
+            else:
+                product_data['image_urls'] = ''
         except:
             pass
         
@@ -1412,6 +1466,12 @@ def main():
         # Process products
         for idx, url in enumerate(product_urls):
             i = product_numbers[idx]
+            # update module-level progress
+            try:
+                CURRENT_PROGRESS_INDEX = i
+                TOTAL_PRODUCTS = len(product_urls)
+            except Exception:
+                pass
             
             if not retry_failed_only and i in completed_numbers:
                 print(f"[SKIP] Product #{i} already processed (وضعیت: OK/OUT_OF_STOCK)")

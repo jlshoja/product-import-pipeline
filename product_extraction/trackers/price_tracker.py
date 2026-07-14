@@ -50,9 +50,9 @@ from common.excel_utils import (
 from common.date_utils import get_persian_date as _get_persian_date
 from common.date_utils import gregorian_to_jalali as _gregorian_to_jalali
 from common.file_registry import get_file
-from common.file_utils import ensure_directory
+from common.file_utils import ensure_directory, safe_copy, find_latest_dated
 from common.file_utils import find_latest_dated
-from common.path_registry import INTERMEDIATE_DIR, RUNTIME_REPORTS_DIR
+from common.path_registry import INTERMEDIATE_DIR, RUNTIME_REPORTS_DIR, get_dated_reports_dir
 from common.price_utils import extract_price_from_text as _extract_price_from_text
 from common.price_utils import format_number as _format_number
 from common.price_utils import parse_numeric_price as _parse_numeric_price
@@ -77,22 +77,36 @@ def create_reports_folder():
     """
     ایجاد فولدر reports اگر وجود ندارد (نسبت به ریشه پروژه، نه cwd)
     """
-    return ensure_directory(RUNTIME_REPORTS_DIR)
+    # Default to a dated subfolder for today's date
+    return get_dated_reports_dir()
 
 
 def find_latest_tracking_file():
     """
     پیدا کردن آخرین فایل پیگیری (نسبت به ریشه پروژه، نه cwd)
     """
+    # Prefer an explicit LATEST file in the root reports folder
     latest_file = RUNTIME_REPORTS_DIR / get_file('product_tracking_latest')
     if latest_file.exists():
         return latest_file
 
-    return find_latest_dated(
-        RUNTIME_REPORTS_DIR,
-        'product_tracking_????-??-??.xlsx',
-        r'product_tracking_(\d{4}-\d{2}-\d{2})\.xlsx$',
-    )
+    # If not present, scan dated subfolders for the most recent archive
+    if RUNTIME_REPORTS_DIR.exists():
+        # Look for product_tracking_YYYY-MM-DD.xlsx inside immediate subfolders
+        candidates = []
+        for sub in RUNTIME_REPORTS_DIR.iterdir():
+            if not sub.is_dir():
+                continue
+            candidate = find_latest_dated(sub, 'product_tracking_????-??-??.xlsx', r'product_tracking_(\d{4}-\d{2}-\d{2})\.xlsx$')
+            if candidate:
+                candidates.append(candidate)
+
+        if candidates:
+            # return the most recently modified among candidates
+            candidates.sort(key=lambda p: p.stat().st_mtime)
+            return candidates[-1]
+
+    return None
 
 
 def load_previous_data(file_path):
@@ -931,7 +945,7 @@ def save_to_excel(current_df, new_products, price_changes, removed_products, pre
     persian_date = get_persian_date()
     date_for_filename = persian_date.replace('/', '-')
     
-    # File names in reports folder
+    # File names in reports folder (reports_dir is a dated folder)
     latest_file = reports_dir / get_file('product_tracking_latest')
     archive_file = reports_dir / f'product_tracking_{date_for_filename}.xlsx'
     
@@ -1002,6 +1016,15 @@ def save_to_excel(current_df, new_products, price_changes, removed_products, pre
     print(f"✓ Archive file saved: {archive_file}")
     sys.stdout.flush()
     
+    # Also keep/update a root-level LATEST copy for backward compatibility
+    root_latest = RUNTIME_REPORTS_DIR / get_file('product_tracking_latest')
+    try:
+        safe_copy(latest_file, root_latest, overwrite=True)
+        print(f"✓ Root LATEST updated: {root_latest}")
+        sys.stdout.flush()
+    except Exception:
+        pass
+
     return latest_file, archive_file
 
 
@@ -1013,7 +1036,7 @@ def main():
     ╔════════════════════════════════════════════════════════╗
     ║   Product Price Tracking & Comparison Tool v2.0        ║
     ║                Enhanced Edition                        ║
-    ║   ✨ با قابلیت شناسایی محصولات حذف شده و گزارش HTML  ║
+    ║   ✨ Detects removed products and generates HTML reports ║
     ╚════════════════════════════════════════════════════════╝
     """)
     
@@ -1113,6 +1136,72 @@ def main():
     
     # ✨ Generate HTML Report in reports folder
     html_file = generate_html_report(current_df, new_products, price_changes, removed_products, previous_df, reports_dir)
+    
+    # ── Write manifests for image processing / import builder
+    try:
+        manifest_new = reports_dir / 'new_products_list.csv'
+        manifest_updated = reports_dir / 'updated_products_list.csv'
+
+        # new_products is a list of dicts when previous_df is None, else list from compare_data
+        if new_products:
+            df_new = pd.DataFrame(new_products)
+            # Ensure sku/url/name columns exist
+            cols = {}
+            if 'کد محصول' in df_new.columns:
+                cols['sku'] = df_new['کد محصول']
+            elif 'sku' in df_new.columns:
+                cols['sku'] = df_new['sku']
+            if 'نام محصول' in df_new.columns:
+                cols['name'] = df_new['نام محصول']
+            if 'لینک محصول' in df_new.columns:
+                cols['url'] = df_new['لینک محصول']
+            if cols:
+                df_out = pd.DataFrame(cols)
+                # Attempt to enrich with image_urls by looking up latest product_details in reports
+                try:
+                    # find a product_details_{timestamp}.xlsx in reports dated folders
+                    pd_map = {}
+                    for sub in Path(RUNTIME_REPORTS_DIR).iterdir():
+                        if not sub.is_dir():
+                            continue
+                        for f in sub.glob('product_details_*.xlsx'):
+                            try:
+                                df_details = read_excel(str(f), dtype=str)
+                                if 'sku' in df_details.columns and 'image_urls' in df_details.columns:
+                                    for _, r in df_details.iterrows():
+                                        key = str(r.get('sku', ''))
+                                        if key:
+                                            pd_map[key] = r.get('image_urls', '')
+                            except Exception:
+                                continue
+                    if 'sku' in df_out.columns:
+                        df_out['image_urls'] = df_out['sku'].map(pd_map).fillna('')
+                except Exception:
+                    pass
+
+                df_out.to_csv(manifest_new, index=False, encoding='utf-8-sig')
+
+        updated_rows = []
+        for change in price_changes:
+            updated_rows.append({
+                'sku': change.get('کد محصول', change.get('sku', '')),
+                'name': change.get('نام محصول', ''),
+                'change_type': 'price',
+                'details': f"{change.get('قیمت قبلی')} -> {change.get('قیمت جدید')}"
+            })
+
+        for rem in removed_products:
+            updated_rows.append({
+                'sku': rem.get('کد محصول', ''),
+                'name': rem.get('نام محصول', ''),
+                'change_type': 'removed',
+                'details': ''
+            })
+
+        if updated_rows:
+            pd.DataFrame(updated_rows).to_csv(manifest_updated, index=False, encoding='utf-8-sig')
+    except Exception:
+        pass
     
     # Summary
     print(f"\n{'='*80}")

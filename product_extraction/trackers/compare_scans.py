@@ -32,6 +32,7 @@ from common.path_registry import (
     LEGACY_APP_DIR,
     RUNTIME_CACHE_DIR,
     RUNTIME_REPORTS_DIR,
+    get_dated_reports_dir,
 )
 from common.file_utils import find_first_glob_match, find_latest_dated
 from common.price_utils import select_effective_price as _select_effective_price
@@ -573,6 +574,91 @@ def compare(scan_path, woo_path, output_path, links_path=None):
     write_sheet_colors(wb, color_changes)
 
     wb.save(output_path)
+    # ── Write manifests (new / updated) into the same reports folder
+    try:
+        out_dir = Path(output_path).parent
+        # New products manifest
+        new_manifest = out_dir / "new_products_list.csv"
+        try:
+            # new_products is a DataFrame
+            cols = ['sku']
+            if 'نام_محصول' in new_products.columns:
+                cols.append('name')
+            if 'قیمت_اصلی' in new_products.columns:
+                cols.append('price')
+            # try to find url column
+            url_col = None
+            for c in ['Product URL', 'Product_URL', 'url', 'ProductURL']:
+                if c in new_products.columns:
+                    url_col = c
+                    break
+            if url_col:
+                cols.append('url')
+
+            df_new_man = pd.DataFrame()
+            sku_col = 'sku' if 'sku' in new_products.columns else ('SKU' if 'SKU' in new_products.columns else None)
+            if sku_col:
+                df_new_man['sku'] = new_products[sku_col].astype(str)
+            if 'نام_محصول' in new_products.columns:
+                df_new_man['name'] = new_products['نام_محصول']
+            if 'قیمت_اصلی' in new_products.columns:
+                df_new_man['price'] = new_products['قیمت_اصلی']
+            if url_col:
+                df_new_man['url'] = new_products[url_col]
+
+            # Enrich with image URLs if scan file provided and has image_urls
+            if 'df_scan' in locals() and not df_scan.empty:
+                scan_img_map = {}
+                if 'sku' in df_scan.columns and 'image_urls' in df_scan.columns:
+                    for _, r in df_scan.iterrows():
+                        key = str(r.get('sku', ''))
+                        if key:
+                            scan_img_map[key] = r.get('image_urls', '')
+                if not df_new_man.empty and 'sku' in df_new_man.columns:
+                    df_new_man['image_urls'] = df_new_man['sku'].map(scan_img_map).fillna('')
+
+            df_new_man.to_csv(new_manifest, index=False, encoding='utf-8-sig')
+        except Exception:
+            # fallback: if no dataframe structure, try minimal new list
+            pass
+
+        # Updated products manifest (price + color changes)
+        updated_manifest = out_dir / "updated_products_list.csv"
+        updated_rows = []
+        for row in price_changes:
+            try:
+                sku = row[0]
+                name = row[1]
+                before = row[2]
+                after = row[3]
+                updated_rows.append({
+                    'sku': sku,
+                    'name': name,
+                    'change_type': 'price',
+                    'details': f"{before} -> {after}"
+                })
+            except Exception:
+                continue
+        for row in color_changes:
+            try:
+                sku = row[0]
+                name = row[1]
+                added = row[4]
+                removed = row[5]
+                details = f"added: {added}; removed: {removed}"
+                updated_rows.append({
+                    'sku': sku,
+                    'name': name,
+                    'change_type': 'color',
+                    'details': details
+                })
+            except Exception:
+                continue
+
+        if updated_rows:
+            pd.DataFrame(updated_rows).to_csv(updated_manifest, index=False, encoding='utf-8-sig')
+    except Exception:
+        pass
     print(f"✓ Output saved:      {output_path}")
     print(f"✓ SKUs to delete:    {txt_path}")
     print(f"  New products:      {len(new_products)}")
@@ -589,6 +675,7 @@ def compare(scan_path, woo_path, output_path, links_path=None):
 # ─── اجرا ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # default reports dir as string for backward compatibility
     reports_dir = str(RUNTIME_REPORTS_DIR)
     woo_dirs = [
         str(RUNTIME_CACHE_DIR / "import_builder" / "uploads"),
@@ -619,11 +706,18 @@ if __name__ == "__main__":
             print("✗ Could not find woocommerce_import_*.csv in uploads folder")
             sys.exit(1)
 
-        date_match = re.search(
-            r"product_details_(\d{8}_\d{6})", os.path.basename(scan_path)
-        )
-        date_str = date_match.group(1) if date_match else "unknown"
-        output_path = os.path.join(reports_dir, f"product_changes_{date_str}.xlsx")
+        date_match = re.search(r"product_details_(\d{8}_\d{6})", os.path.basename(scan_path))
+        date_str = date_match.group(1) if date_match else None
+
+        # Save in a dated subdirectory (YYYY-MM-DD) when possible to keep reports tidy
+        if date_str:
+            # date_str is YYYYMMDD_HHMMSS -> YYYY-MM-DD
+            dated = f"{date_str[0:4]}-{date_str[4:6]}-{date_str[6:8]}"
+            dated_dir = get_dated_reports_dir(dated)
+            reports_dir = str(dated_dir)
+            output_path = os.path.join(reports_dir, f"product_changes_{date_str}.xlsx")
+        else:
+            output_path = os.path.join(reports_dir, f"product_changes_unknown.xlsx")
 
         links_path = None
         for d in links_dirs:
@@ -631,13 +725,13 @@ if __name__ == "__main__":
             if links_path:
                 break
 
-        print(f"→ WooCommerce (سایت فعلی): {os.path.basename(woo_path)}")
-        print(f"→ اسکن جدید:               {os.path.basename(scan_path)}")
-        print(f"→ فایل خروجی:              {output_path}")
+        print(f"→ WooCommerce (current site): {os.path.basename(woo_path)}")
+        print(f"→ New scan:                  {os.path.basename(scan_path)}")
+        print(f"→ Output file:               {output_path}")
         if links_path:
-            print(f"→ فایل لینک محصولات:       {os.path.basename(links_path)}")
+            print(f"→ Product links file:        {os.path.basename(links_path)}")
         else:
-            print(f"→ فایل لینک محصولات:       پیدا نشد (شیت لینک‌ها ساخته نمی‌شه)")
+            print(f"→ Product links file:        not found (links sheet will be skipped)")
         print()
 
         # ── هشدار ترتیب زمانی ────────────────────────────────────────
@@ -647,17 +741,17 @@ if __name__ == "__main__":
         _scan_ts = re.search(r"(\d{8}_\d{6})", os.path.basename(scan_path))
         _woo_ts = re.search(r"(\d{8}_\d{6})", os.path.basename(woo_path))
         if _scan_ts and _woo_ts and _woo_ts.group(1) >= _scan_ts.group(1):
-            print("⚠️  هشدار: فایل WooCommerce از اسکن جدیدتر (یا هم‌زمان) است.")
+            print("⚠️  Warning: WooCommerce file is newer than (or same as) the scan.")
             print(f"    WooCommerce: {_woo_ts.group(1)}")
-            print(f"    اسکن:        {_scan_ts.group(1)}")
-            print("    احتمالاً CSV از همین اسکن ساخته شده و تغییری دیده نمی‌شود.")
+            print(f"    Scan:        {_scan_ts.group(1)}")
+            print("    The CSV was likely generated from this scan and no meaningful changes will be found.")
             if sys.stdin.isatty():
-                answer = input("    ادامه می‌دهید؟ (y/N): ").strip().lower()
+                answer = input("    Continue? (y/N): ").strip().lower()
                 if answer not in ("y", "yes"):
-                    print("لغو شد.")
+                    print("Cancelled.")
                     sys.exit(0)
             else:
-                print("    (حالت غیرتعاملی — ادامه با همین فایل‌ها)")
+                print("    (Non-interactive mode — continuing with the same files)")
             print()
 
     elif len(sys.argv) in (4, 5):
