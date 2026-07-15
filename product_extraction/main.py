@@ -69,19 +69,36 @@ class ProductScraperApp:
         try:
             import scrapers.link_scraper as link_scraper_module
             from common.file_utils import file_exists_and_non_empty
+            from common.path_registry import INTERMEDIATE_DIR
+            import os
+            
+            # Set AUTO_MODE for link_scraper to use resume logic
+            os.environ['AUTO_MODE'] = '1'
+            # Set AUTO_RESUME to enable resume if progress exists
+            os.environ['AUTO_RESUME'] = '1'
             
             # Run the scraper
             link_scraper_module.main()
             
-            # Validate output
+            # Validate output - check both possible filenames
             output_file = get_file('extracted_links')
-            if not file_exists_and_non_empty(output_file):
-                self.logger.error(f"Link Scraper produced no output: {output_file}")
-                return False
+            output_path = str(INTERMEDIATE_DIR / output_file)
+            
+            # Also check for extracted_products.xlsx (legacy name)
+            legacy_output = str(INTERMEDIATE_DIR / get_file('extracted_products'))
+            
+            # Check if either output file exists and is non-empty
+            if not file_exists_and_non_empty(output_path):
+                if not file_exists_and_non_empty(legacy_output):
+                    self.logger.error(f"Link Scraper produced no output: {output_file}")
+                    return False
+                else:
+                    # Legacy file exists, use it
+                    output_path = legacy_output
             
             # Read the output file to check if any products were extracted
             import pandas as pd
-            df = pd.read_excel(output_file)
+            df = pd.read_excel(output_path)
             if df.empty or len(df) == 0:
                 self.logger.error("Link Scraper extracted zero products")
                 return False
@@ -103,9 +120,11 @@ class ProductScraperApp:
         try:
             import scrapers.spec_scraper as spec_scraper_module
             from common.file_utils import file_exists_and_non_empty
+            from common.path_registry import INTERMEDIATE_DIR
 
             # Validate input: extracted_links is REQUIRED
-            links_file = get_file('extracted_links')
+            links_filename = get_file('extracted_links')
+            links_file = str(INTERMEDIATE_DIR / links_filename)
             if not file_exists_and_non_empty(links_file):
                 self.logger.error(f"Spec Scraper cannot run: missing input file {links_file}")
                 return False
@@ -375,15 +394,30 @@ class ProductScraperApp:
             self.logger.info(f"{'='*70}")
 
             # If resuming and this step already done, skip it
+            # But first validate that the step's output actually exists
             if resume:
                 s = existing.get('steps', {}).get(step_name, {})
                 if s.get('status') == 'done':
-                    self.logger.info(f" Skipping {step_name} (already done in previous run)")
-                    results[step_name] = True
-                    continue
+                    # Validate that the step actually completed successfully
+                    step_valid = True
+                    if step_name == "Link Scraper":
+                        from common.file_utils import file_exists_and_non_empty
+                        from common.path_registry import INTERMEDIATE_DIR
+                        output_file = str(INTERMEDIATE_DIR / get_file('extracted_links'))
+                        legacy_output = str(INTERMEDIATE_DIR / get_file('extracted_products'))
+                        step_valid = (file_exists_and_non_empty(output_file) or 
+                                    file_exists_and_non_empty(legacy_output))
+                        if not step_valid:
+                            self.logger.warning(f"  {step_name} marked as done but output file missing - will re-run")
+                    
+                    if step_valid:
+                        self.logger.info(f" Skipping {step_name} (already done in previous run)")
+                        results[step_name] = True
+                        continue
 
             retry_count = 0
             result = False
+            step_succeeded = False
             while retry_count <= max_retries:
                 try:
                     result = step_func()
@@ -393,31 +427,36 @@ class ProductScraperApp:
                         unresolved_colors = result.get('unresolved_colors', [])
                         unresolved_names = result.get('unresolved_names', [])
 
-                    # update pipeline state for this step
-                    update_step(step_name, 'done' if result else 'failed')
-
                     if result:
+                        step_succeeded = True
+                        # Only update state as 'done' on final success
+                        update_step(step_name, 'done')
                         self.logger.info(f" {step_name} succeeded")
                         break  # Exit retry loop on success
                     else:
                         retry_count += 1
+                        # Don't update state as failed on intermediate attempts
                         if retry_count <= max_retries:
                             self.logger.warning(f" {step_name} failed - retry {retry_count}/{max_retries}")
                         else:
+                            # Only mark as failed after all retries exhausted
+                            update_step(step_name, 'failed')
                             self.logger.error(f" {step_name} failed after {max_retries} retries - aborting pipeline")
                             break
                 except Exception as e:
-                    update_step(step_name, 'failed', {'error': str(e)})
-                    self.logger.error(f" Error in {step_name}: {e}", exc_info=True)
                     retry_count += 1
+                    self.logger.error(f" Error in {step_name}: {e}", exc_info=True)
+                    # Don't update state as failed on intermediate attempts
                     if retry_count <= max_retries:
                         self.logger.warning(f" Retrying {step_name} ({retry_count}/{max_retries})...")
                     else:
+                        # Only mark as failed after all retries exhausted
+                        update_step(step_name, 'failed', {'error': str(e)})
                         results[step_name] = False
                         break
 
-            results[step_name] = bool(result)
-            if not result:
+            results[step_name] = step_succeeded
+            if not step_succeeded:
                 break  # Stop the pipeline if the step ultimately fails
 
         # Display summary

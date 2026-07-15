@@ -9,7 +9,7 @@ FILE_GROUPS = {
     "pipeline": {
         "archive_urls": "archive_urls.xlsx",
         "extracted_links": "extracted_links.xlsx",
-        "extracted_products": "extracted_products.xlsx",
+        "extracted_products": "extracted_links.xlsx",
         "product_details": "product_details_complete.xlsx",
         "standardized_output": "product.csv",
         "product_tracking_latest": "product_tracking_LATEST.xlsx",

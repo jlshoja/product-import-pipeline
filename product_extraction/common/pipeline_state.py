@@ -55,8 +55,19 @@ def update_step(step_name, status, info=None):
     steps[step_name] = {'status': status, 'info': info or {}, 'ts': datetime.utcnow().isoformat()}
     state['steps'] = steps
     state['last_step'] = step_name
+    # Only mark pipeline as failed if this is the final status for the step
+    # Don't mark as failed on intermediate retry attempts
     if status in ('failed', 'error'):
-        state['status'] = 'failed'
+        # Check if this step was previously successful
+        if steps.get(step_name, {}).get('status') != 'done':
+            # Only update overall status if no steps have succeeded yet
+            existing_steps = state.get('steps', {})
+            any_done = any(s.get('status') == 'done' for s in existing_steps.values())
+            if not any_done:
+                state['status'] = 'failed'
+    elif status == 'done':
+        # If a step succeeds, clear any previous failed status
+        state['status'] = 'running'
     write_state(state)
     return state
 

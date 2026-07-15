@@ -2,8 +2,14 @@
 import sys
 import codecs
 if sys.platform == 'win32':
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'replace')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'replace')
+    try:
+        if hasattr(sys.stdout, 'buffer'):
+            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'replace')
+        if hasattr(sys.stderr, 'buffer'):
+            sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'replace')
+    except (AttributeError, ValueError):
+        # Fallback for environments where buffer is not available
+        pass
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -41,7 +47,7 @@ CHECKPOINT_FILE = str(ROOT_DIR / "runtime" / "state" / get_file('checkpoint'))  
 ERROR_LOG_FILE  = str(RUNTIME_LOGS_DIR / get_file('error_log'))  # all errors
 PAGE_SOURCE_FILE = str(ROOT_DIR / "runtime" / "cache" / "page_source.html")  # captured HTML for debugging
 INPUT_FILE      = str(INPUTS_DIR / get_file('archive_urls'))
-OUTPUT_FILE     = str(INTERMEDIATE_DIR / get_file('extracted_products'))
+OUTPUT_FILE     = str(INTERMEDIATE_DIR / get_file('extracted_links'))
 
 # Run modes
 MODE_FRESH        = '1'  # start fresh
@@ -329,10 +335,14 @@ def extract_products_from_archive(driver, archive_url: str) -> tuple[list, list]
 # Final summary report
 # ─────────────────────────────────────────────
 
-def print_failure_summary(total_ok: int):
+def print_failure_summary(total_ok: int, state: dict = None):
     print("\n" + "=" * 60)
     print("📋 FAILURE SUMMARY")
     print("=" * 60)
+
+    # Get values from state if provided
+    failed_urls = state.get('failed_urls', []) if state else []
+    total_products = len(state.get('all_products', [])) if state else 0
 
     if not _error_records:
         if failed_urls:
@@ -424,6 +434,12 @@ def process_urls(driver, urls_to_run: list, state: dict, label: str = ''):
             ]
             state['all_products'].extend(products_ok)
             print(f"  ✓ Extracted {len(products_ok)} products")
+            # Only add to completed_urls if we got products
+            if url not in state['completed_urls']:
+                state['completed_urls'].append(url)
+            # Remove from failed_urls if it was there
+            if url in state['failed_urls']:
+                state['failed_urls'].remove(url)
         else:
             print(f"  ✗ No products — URL marked as failed")
             if url not in state['failed_urls']:
@@ -436,9 +452,6 @@ def process_urls(driver, urls_to_run: list, state: dict, label: str = ''):
                     'product': fi['product'],
                     'reason':  fi['reason'],
                 })
-
-        if url not in state['completed_urls']:
-            state['completed_urls'].append(url)
 
         save_progress(state)
         print(f"  → Checkpoint saved ({len(state['all_products'])} products total)")
@@ -462,10 +475,30 @@ def main():
     print("=" * 60)
     sys.stdout.flush()
 
-    mode = MODE_FRESH
-    for f in [PROGRESS_FILE, CHECKPOINT_FILE, ERROR_LOG_FILE]:
-        safe_delete(f)
-
+    # Check if running in auto mode (from pipeline)
+    auto_mode = os.getenv('AUTO_MODE', '').strip().lower() in ('1', 'true', 'yes')
+    auto_resume = os.getenv('AUTO_RESUME', '').strip().lower() in ('1', 'true', 'yes')
+    
+    # Determine mode
+    if auto_mode:
+        # In auto mode, check if we have progress to resume
+        state = load_progress()
+        has_progress = bool(state.get('completed_urls'))
+        if has_progress and auto_resume:
+            mode = MODE_RESUME
+            print("  Auto mode: Resuming from previous progress")
+        else:
+            mode = MODE_FRESH
+            print("  Auto mode: Starting fresh")
+    else:
+        # Interactive mode - show menu
+        mode = choose_run_mode()
+    
+    # Delete progress files only in FRESH mode
+    if mode == MODE_FRESH:
+        for f in [PROGRESS_FILE, CHECKPOINT_FILE, ERROR_LOG_FILE]:
+            safe_delete(f)
+    
     # load state (after possible wipe in FRESH mode)
     state = load_progress()
 
@@ -548,10 +581,10 @@ def main():
 
             print("\n📋 Sample:")
             print(df_out.head(10).to_string(index=False))
-            print_failure_summary(len(df_out))
+            print_failure_summary(len(df_out), state)
         else:
             print("✗ No products found.")
-            print_failure_summary(0)
+            print_failure_summary(0, state)
 
     except FileNotFoundError:
         print(f"\n✗ {INPUT_FILE} not found!")
