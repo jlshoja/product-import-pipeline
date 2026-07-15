@@ -139,9 +139,7 @@ class ProductScraperApp:
             spec_scraper_module.main()
 
             # Validate output
-            from common.path_registry import OUTPUTS_DIR
-            output_filename = get_file('product_details')
-            output_file = str(OUTPUTS_DIR / output_filename)
+            output_file = get_file('extracted_products')
             if not file_exists_and_non_empty(output_file):
                 self.logger.error(f"Spec Scraper produced no output: {output_file}")
                 return False
@@ -351,9 +349,6 @@ class ProductScraperApp:
         unresolved during standardization.
         """
         os.environ['AUTO_MODE'] = '1'
-        # Set AUTO_RESUME for the entire pipeline if we're resuming
-        if resume:
-            os.environ['AUTO_RESUME'] = '1'
 
         self.logger.info("\n Starting AUTOMATIC pipeline execution...\n")
 
@@ -391,18 +386,9 @@ class ProductScraperApp:
                 except Exception:
                     resume = False
 
-        # If not resuming, start a fresh pipeline run
+        # If not resuming, start a fresh state
         if not resume:
-            # Clear existing pipeline state and start fresh
-            from common.pipeline_state import write_state
-            write_state({
-                'run_id': datetime.now().strftime('%Y%m%d_%H%M%S'),
-                'start_time': datetime.utcnow().isoformat(),
-                'steps': {},
-                'last_step': None,
-                'status': 'running'
-            })
-            self.logger.info('Starting fresh pipeline run (cleared previous state)')
+            start_run()
         else:
             self.logger.info('Resuming previous pipeline run based on pipeline_state.json')
 
