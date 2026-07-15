@@ -343,6 +343,9 @@ class ProductScraperApp:
         unresolved during standardization.
         """
         os.environ['AUTO_MODE'] = '1'
+        # Set AUTO_RESUME for the entire pipeline if we're in resume mode
+        if resume:
+            os.environ['AUTO_RESUME'] = '1'
 
         self.logger.info("\n Starting AUTOMATIC pipeline execution...\n")
 
@@ -380,9 +383,18 @@ class ProductScraperApp:
                 except Exception:
                     resume = False
 
-        # If not resuming, start a fresh state
+        # If not resuming, start a fresh pipeline run
         if not resume:
-            start_run()
+            # Clear existing pipeline state and start fresh
+            from common.pipeline_state import write_state
+            write_state({
+                'run_id': datetime.now().strftime('%Y%m%d_%H%M%S'),
+                'start_time': datetime.utcnow().isoformat(),
+                'steps': {},
+                'last_step': None,
+                'status': 'running'
+            })
+            self.logger.info('Starting fresh pipeline run (cleared previous state)')
         else:
             self.logger.info('Resuming previous pipeline run based on pipeline_state.json')
 
