@@ -149,5 +149,7 @@ runtime/reports
 # ==========================================
 .agents/skills/graphify/
 .claude/skills/graphify/
-    
-    
+
+# Runtime state
+# ==========================================
+product_extraction/runtime/state/   
