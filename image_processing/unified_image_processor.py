@@ -740,7 +740,7 @@ def main():
     
     args = parser.parse_args()
 
-    # ── Input: all dated subfolders ──────────────────────────────────────
+    # ── Input: use latest dated subfolder only ────────────────────────────
     if not os.path.exists(args.input):
         print(f"Error: Folder '{args.input}' does not exist!")
         print(f"Please create the folder and place images in it.")
@@ -752,9 +752,11 @@ def main():
         for folder in all_subfolders:
             print(f"   - {folder.name}")
         
-        # Use all subfolders for processing
-        effective_input = args.input
-        print(f"Processing images from all dated subfolders in '{args.input}'")
+        # Use only the LATEST dated subfolder (most recent session)
+        latest_folder = all_subfolders[-1]
+        effective_input = str(latest_folder)
+        print(f"Using latest session: '{latest_folder.name}'")
+        print(f"Input folder used: {effective_input}")
     else:
         # If no dated subfolder is found, use the base folder directly
         effective_input = args.input
