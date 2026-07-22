@@ -418,13 +418,24 @@ def process_products_v12(input_file, process_images=False, source_images_folder=
 
             color_en_norm = _norm(color_en)
             color_images = image_info['color_images']
+            general_images = image_info.get('general_images', [])
+            
+            # Try to find matching color image
             variation_image = (
                 color_images.get(color_en_norm) or
                 color_images.get(color_en) or
                 next((v for k, v in color_images.items() if _norm(k) == color_en_norm), None) or
-                next((v for k, v in color_images.items() if color_en_norm in _norm(k) or _norm(k) in color_en_norm), None) or
-                main_image
+                next((v for k, v in color_images.items() if color_en_norm in _norm(k) or _norm(k) in color_en_norm), None)
             )
+            
+            # If no color match, use next available general image, then main_image
+            if not variation_image:
+                if general_images:
+                    variation_image = general_images.pop(0)
+                    print(f"   [FALLBACK] Color '{color_en}' -> general image: {variation_image}")
+                else:
+                    variation_image = main_image
+                    print(f"   [FALLBACK] Color '{color_en}' -> main image (no general left)")
             variation_alt = f"{product_name} کد {model_display} - {color_fa}"
             
             variation_row = {

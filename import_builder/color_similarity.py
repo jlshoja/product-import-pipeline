@@ -17,21 +17,22 @@ COLOR_SIMILARITY = {
     # سفید و کرم‌ها
     'white': ['off-white', 'cream', 'ivory', 'light-cream', 'silver', 'light-gray'],
     'off-white': ['white', 'cream', 'ivory', 'silver', 'light-gray'],
-    'cream': ['beige', 'off-white', 'light-cream', 'ivory'],
-    'light-cream': ['cream', 'beige', 'off-white'],
-    'beige': ['cream', 'tan', 'sand'],
+    'cream': ['beige', 'off-white', 'light-cream', 'ivory', 'light-gray', 'tan'],
+    'light-cream': ['cream', 'beige', 'off-white', 'light-gray'],
+    'beige': ['cream', 'tan', 'sand', 'light-gray'],
+    'sand': ['beige', 'tan', 'light-gray'],
     
     # قهوه‌ای‌ها
     'brown': ['dark-brown', 'chocolate', 'coffee', 'tan'],
     'dark-brown': ['brown', 'chocolate', 'coffee', 'espresso'],
     'chocolate': ['brown', 'dark-brown', 'coffee'],
     'coffee': ['brown', 'dark-brown', 'chocolate', 'espresso'],
-    'tan': ['beige', 'brown', 'sand'],
+    'tan': ['beige', 'brown', 'sand', 'light-gray'],
     
     # عسلی و کاراملی
-    'honey': ['gold', 'caramel', 'amber', 'mustard'],
-    'caramel': ['honey', 'tan', 'brown'],
-    'gold': ['honey', 'yellow', 'mustard'],
+    'honey': ['gold', 'caramel', 'amber', 'mustard', 'tan', 'beige'],
+    'caramel': ['honey', 'tan', 'brown', 'beige'],
+    'gold': ['honey', 'yellow', 'mustard', 'amber'],
     
     # آبی‌ها
     'blue': ['light-blue', 'sky-blue', 'navy-blue', 'navy'],
