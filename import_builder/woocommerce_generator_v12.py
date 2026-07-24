@@ -560,11 +560,29 @@ def process_products_v12(input_file, process_images=False, source_images_folder=
                 if 'SKU' in df_output.columns:
                     df_output['sku'] = df_output['SKU']
 
+            # Helper: get parent SKU from any SKU (parent or variation)
+            # Variation SKUs are like "9266-black" -> parent is "9266"
+            def get_parent_sku(sku):
+                if pd.isna(sku):
+                    return ''
+                sku_str = str(sku).strip()
+                # If it's a variation SKU (contains dash with color suffix), extract parent
+                if '-' in sku_str and sku_str.count('-') >= 1:
+                    # Find last dash that separates parent from color
+                    # Parent SKUs are numeric, so split from right
+                    parts = sku_str.rsplit('-', 1)
+                    if parts[0].isdigit():
+                        return parts[0]
+                return sku_str
+
             if new_manifest and os.path.exists(new_manifest):
                 df_new_list = pd.read_csv(new_manifest, encoding='utf-8-sig')
                 new_skus = set(map(str, df_new_list['sku'].astype(str))) if 'sku' in df_new_list.columns else set()
                 if new_skus:
-                    df_new_out = df_output[df_output['sku'].astype(str).isin(new_skus)]
+                    # Match by parent SKU for variations
+                    df_output['_parent_sku'] = df_output['sku'].apply(get_parent_sku)
+                    df_new_out = df_output[df_output['_parent_sku'].astype(str).isin(new_skus)]
+                    df_new_out = df_new_out.drop(columns=['_parent_sku'])
                     new_xlsx = os.path.join(output_folder, f"woocommerce_new_{timestamp}.xlsx")
                     df_new_out.to_excel(new_xlsx, index=False, engine='openpyxl')
                     generated_files['new'] = new_xlsx
@@ -574,7 +592,9 @@ def process_products_v12(input_file, process_images=False, source_images_folder=
                 df_updated_list = pd.read_csv(updated_manifest, encoding='utf-8-sig')
                 updated_skus = set(map(str, df_updated_list['sku'].astype(str))) if 'sku' in df_updated_list.columns else set()
                 if updated_skus:
-                    df_update_out = df_output[df_output['sku'].astype(str).isin(updated_skus)]
+                    df_output['_parent_sku'] = df_output['sku'].apply(get_parent_sku)
+                    df_update_out = df_output[df_output['_parent_sku'].astype(str).isin(updated_skus)]
+                    df_update_out = df_update_out.drop(columns=['_parent_sku'])
                     update_xlsx = os.path.join(output_folder, f"woocommerce_update_{timestamp}.xlsx")
                     df_update_out.to_excel(update_xlsx, index=False, engine='openpyxl')
                     generated_files['update'] = update_xlsx
